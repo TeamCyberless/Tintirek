@@ -10,6 +10,7 @@
 #include <ws2tcpip.h>
 #include <string>
 #include <sstream>
+#include <thread>
 
 #pragma comment(lib, "ws2_32.lib")
 
@@ -110,34 +111,24 @@ bool TrkWindowsServer::Run(const char*& ErrorStr)
 		{
 			if (FD_ISSET(i, &readSet))
 			{
-				sockaddr_in clientAddr;
-				socklen_t clientLen = sizeof(clientAddr);
-				SOCKET clientSocket = accept(server_socket, (struct sockaddr*)&clientAddr, &clientLen);
-				if (clientSocket == INVALID_SOCKET)
+				if (i == server_socket)
 				{
-					ErrorStr = "Client accept error.";
-					continue;
+					sockaddr_in clientAddr;
+					socklen_t clientLen = sizeof(clientAddr);
+					SOCKET clientSocket = accept(server_socket, (struct sockaddr*)&clientAddr, &clientLen);
+					if (clientSocket == INVALID_SOCKET)
+					{
+						ErrorStr = "Client accept error.";
+						continue;
+					}
+
+					char ip[INET_ADDRSTRLEN];
+					inet_ntop(AF_INET, &clientAddr.sin_addr, ip, INET_ADDRSTRLEN);
+					LOG_OUT("Connection established: " << ip << ":" << htons(clientAddr.sin_port));
+					TrkClientInfo* client = new TrkClientInfo(&clientAddr, clientSocket);
+					AppendToListUnique(client);
+					std::thread(&TrkServer::HandleConnection, this, client).detach();
 				}
-
-				const char* message;
-				if (!ReceivePacket(clientSocket, message, ErrorStr))
-				{
-					closesocket(clientSocket);
-					continue;
-				}
-
-				const char* returned;
-				HandleCommand(message, returned);
-
-				int errcode;
-				if (!SendPacket(clientSocket, returned, errcode))
-				{
-					std::stringstream os;
-					os << "Send error! (errno: " << errcode << ")";
-					ErrorStr = strdup(os.str().c_str());
-				}
-
-				closesocket(clientSocket);
 			}
 		}
 	}

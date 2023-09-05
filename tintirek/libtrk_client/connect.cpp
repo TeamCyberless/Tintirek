@@ -79,6 +79,7 @@ bool TrkConnectHelper::SendCommand(TrkCliClientOptionResults& opt_result, const 
 		}
 	}
 
+	std::cout << message << std::endl;
 	ErrorStr = "Something strange happened. Are you sure about you are not under any MITM attack?";
 	return false;
 }

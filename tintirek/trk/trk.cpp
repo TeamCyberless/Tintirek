@@ -300,7 +300,7 @@ int main(int argc, char** argv)
 	const char *returned, *errmsg;
 	if (!TrkConnectHelper::SendCommand(opt_result, "GetInformation", errmsg, returned))
 	{
-		std::cerr << errmsg;
+		std::cerr << "Something really bad happened. Are you sure your version is compatible with the server?" << std::endl;
 		return EXIT_FAILURE;
 	}
 	else

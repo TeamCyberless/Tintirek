@@ -25,30 +25,64 @@
 
 
 
-bool TrkServer::HandleCommand(const char* Message, const char*& Returned)
+void TrkServer::HandleConnection(TrkClientInfo* client_info)
 {
-	std::string command, message = std::string(Message);
-	std::vector<std::string> parameters;
-	size_t pos = message.find('?');
+	const char* error_str;
+	const char* message;
+	char ip[INET_ADDRSTRLEN];
+	inet_ntop(AF_INET, &client_info->client_info->sin_addr, ip, INET_ADDRSTRLEN);
+	client_info->mutex = std::make_unique<std::mutex>();
+
+	if (!ReceivePacket(client_info->client_socket, message, error_str))
+	{
+		LOG_ERR("Erorr with " << ip << ":" << htons(client_info->client_info->sin_port) << ": " << error_str);
+		closesocket(client_info->client_socket);
+		return;
+	}
+
+	std::string command, msg = std::string(message);
+	std::vector<const char*> parameters;
+	size_t pos = msg.find('?');
 	if (pos != std::string::npos)
 	{
-		command = message.substr(0, pos);
+		command = msg.substr(0, pos);
 
 		size_t current = pos + 1;
-		while ((pos = message.find('?', current)) != std::string::npos)
+		while ((pos = msg.find('?', current)) != std::string::npos)
 		{
-			parameters.push_back(message.substr(current, pos));
+			parameters.push_back(strdup(msg.substr(current, pos).c_str()));
 			current = pos + 1;
 		}
 
-		parameters.push_back(message.substr(current));
+		parameters.push_back(strdup(msg.substr(current).c_str()));
 	}
 	else
 	{
 		command = message;
 	}
 
-	if (command == "GetInformation")
+	LOG_OUT("Client (" << ip << ":" << htons(client_info->client_info->sin_port) << ") tried to run: " << command);
+
+	const char* returned;
+	HandleCommand(strdup(command.c_str()), parameters.data(), returned);
+
+	int errcode;
+	if (!SendPacket(client_info->client_socket, returned, errcode))
+	{
+		std::stringstream os;
+		os << "Send error! (errno: " << errcode << ")";
+		LOG_ERR("Erorr with " << ip << ":" << htons(client_info->client_info->sin_port) << ": " << os.str());
+	}
+
+	closesocket(client_info->client_socket);
+	LOG_OUT("Connection closed: " << ip << ":" << htons(client_info->client_info->sin_port));
+	client_info->mutex->lock();
+	RemoveFromList(client_info);
+}
+
+bool TrkServer::HandleCommand(const char* Command, const char** Arguments, const char*& Returned)
+{
+	if (strcmp(Command, "GetInformation") == 0)
 	{
 		TRK_VERSION_DEFINE_PROGRAM(verinfo);
 
@@ -74,7 +108,7 @@ bool TrkServer::HandleCommand(const char* Message, const char*& Returned)
 		return true;
 	}
 
-	Returned = strdup("Command not found");
+	Returned = strdup("ERROR\nCommand not found");
 	return false;
 }
 

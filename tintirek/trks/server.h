@@ -9,6 +9,7 @@
 
 
 #include <iostream>
+#include <mutex>
 
 #include "trk_config.h"
 
@@ -16,8 +17,9 @@
 class TrkClientInfo
 {
 public:
-	TrkClientInfo(struct sockaddr_in* ClientInfo = nullptr)
+	TrkClientInfo(struct sockaddr_in* ClientInfo = nullptr, int Socket = -1)
 		: client_info(ClientInfo)
+		, client_socket(Socket)
 	{ }
 
 	~TrkClientInfo()
@@ -28,10 +30,12 @@ public:
 		}
 	}
 
+	/*	Mutex object for async processes */
+	std::unique_ptr<std::mutex> mutex;
 	/*	Client info */
 	const struct sockaddr_in* client_info;
-	/*	Authenticated username */
-	const char* user = nullptr;
+	/*	Client socket number */
+	const int client_socket = -1;
 
 protected:
 	/* Linked list's next element */
@@ -84,12 +88,6 @@ public:
 	TrkClientInfoIterator end() {
 		return TrkClientInfoIterator(nullptr);
 	}
-
-	/* Checks given socket addres object with our class */
-	bool operator == (const struct sockaddr_in* other) const
-	{
-		return other == client_info;
-	}
 };
 
 
@@ -112,8 +110,10 @@ public:
 		resets the connections of connected users */
 	virtual bool Cleanup(const char*& ErrorStr) = 0;
 
+	/*  Handle clients */
+	virtual void HandleConnection(TrkClientInfo* client_info);
 	/*	Handle commands */
-	virtual bool HandleCommand(const char* Message, const char*& Returned);
+	virtual bool HandleCommand(const char* Command, const char** Arguments, const char*& Returned);
 
 	/*	Sends packet to client as chunked data */
 	virtual bool SendPacket(int client_socket, const char* message, int& error_code);
@@ -147,7 +147,6 @@ public:
 	{
 		if (list == nullptr)
 		{
-			std::cout << "yes" << std::endl;
 			list = NewElement;
 			NewElement->SetNext(nullptr);
 			return true;
@@ -181,6 +180,7 @@ public:
 		{
 			list = current->GetNext();
 			current->SetNext(nullptr);
+			current->mutex->unlock();
 			delete current;
 			return true;
 		}
@@ -191,6 +191,7 @@ public:
 			{
 				previous->SetNext(current->GetNext());
 				current->SetNext(nullptr);
+				current->mutex->unlock();
 				delete current;
 				return true;
 			}
