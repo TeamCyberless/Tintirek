@@ -127,11 +127,7 @@ bool TrkWindowsServer::Run(const char*& ErrorStr)
 				}
 
 				const char* returned;
-				if (!HandleCommand(message, returned))
-				{
-					closesocket(clientSocket);
-					continue;
-				}
+				HandleCommand(message, returned);
 
 				int errcode;
 				if (!SendPacket(clientSocket, returned, errcode))

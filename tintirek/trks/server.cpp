@@ -27,28 +27,55 @@
 
 bool TrkServer::HandleCommand(const char* Message, const char*& Returned)
 {
-	TRK_VERSION_DEFINE_PROGRAM(verinfo);
+	std::string command, message = std::string(Message);
+	std::vector<std::string> parameters;
+	size_t pos = message.find('?');
+	if (pos != std::string::npos)
+	{
+		command = message.substr(0, pos);
 
-	time_t currentTime;
-	time(&currentTime);
+		size_t current = pos + 1;
+		while ((pos = message.find('?', current)) != std::string::npos)
+		{
+			parameters.push_back(message.substr(current, pos));
+			current = pos + 1;
+		}
 
-	time_t timeDiff = currentTime - (opt_result->start_timestamp / 1000);
-	int hours = timeDiff / 3600;
-	int minutes = (timeDiff % 3600) / 60;
-	int seconds = timeDiff % 60;
+		parameters.push_back(message.substr(current));
+	}
+	else
+	{
+		command = message;
+	}
 
-	std::stringstream os;
-	os << "OK\n"
-		<< "serverversion=" << verinfo.getFullVersionInfo() << ";"
-		<< "serveruptime="
-		<< std::setfill('0') << std::setw(2) << hours << ":"
-		<< std::setw(2) << minutes << ":"
-		<< std::setw(2) << seconds
-		<< ";"
-		<< "servertime=" << GetTimestamp("%Y/%m/%d %H:%M:%S %z");
+	if (command == "GetInformation")
+	{
+		TRK_VERSION_DEFINE_PROGRAM(verinfo);
 
-	Returned = strdup(os.str().c_str());
-	return true;
+		time_t currentTime;
+		time(&currentTime);
+
+		time_t timeDiff = currentTime - (opt_result->start_timestamp / 1000);
+		int hours = timeDiff / 3600;
+		int minutes = (timeDiff % 3600) / 60;
+		int seconds = timeDiff % 60;
+
+		std::stringstream os;
+		os << "OK\n"
+			<< "serverversion=" << verinfo.getFullVersionInfo() << ";"
+			<< "serveruptime="
+			<< std::setfill('0') << std::setw(2) << hours << ":"
+			<< std::setw(2) << minutes << ":"
+			<< std::setw(2) << seconds
+			<< ";"
+			<< "servertime=" << GetTimestamp("%Y/%m/%d %H:%M:%S %z");
+
+		Returned = strdup(os.str().c_str());
+		return true;
+	}
+
+	Returned = strdup("Command not found");
+	return false;
 }
 
 bool TrkServer::SendPacket(int client_socket, const char* message, int& error_code)
