@@ -1,0 +1,239 @@
+/*
+ *	server.h
+ *
+ *	Declarations for the Tintirek Server
+ */
+
+#ifndef SERVER_H
+#define SERVER_H
+
+
+#include <iostream>
+
+#include "trk_config.h"
+
+
+class TrkClientInfo
+{
+public:
+	TrkClientInfo(struct sockaddr_in* ClientInfo = nullptr)
+		: client_info(ClientInfo)
+	{ }
+
+	~TrkClientInfo()
+	{
+		if (next_client != nullptr)
+		{
+			delete next_client;
+		}
+	}
+
+	/*	Client info */
+	const struct sockaddr_in* client_info;
+	/*	Authenticated username */
+	const char* user = nullptr;
+
+protected:
+	/* Linked list's next element */
+	TrkClientInfo* next_client = nullptr;
+
+public:
+	/* Get next client */
+	TrkClientInfo* GetNext() const { return next_client; }
+	/* Set next client*/
+	void SetNext(TrkClientInfo* NewClient) { next_client = NewClient; }
+
+
+	/* Class for option flag iterator */
+	class TrkClientInfoIterator
+	{
+	private:
+		/* Current element */
+		TrkClientInfo* current;
+
+	public:
+		TrkClientInfoIterator(TrkClientInfo* StartNode)
+			: current(StartNode)
+		{ }
+
+		/* Checks given element with our current element */
+		bool operator != (const TrkClientInfoIterator& other) const {
+			return current != other.current;
+		}
+
+		/* Returns current element when called as pointer */
+		TrkClientInfo* operator*() const {
+			return current;
+		}
+
+		/* Increments our current element */
+		TrkClientInfoIterator& operator++() {
+			current = current->GetNext();
+			return *this;
+		}
+	};
+
+
+
+	/* begin function override */
+	TrkClientInfoIterator begin() {
+		return TrkClientInfoIterator(this);
+	}
+
+	/* end function override */
+	TrkClientInfoIterator end() {
+		return TrkClientInfoIterator(nullptr);
+	}
+
+	/* Checks given socket addres object with our class */
+	bool operator == (const struct sockaddr_in* other) const
+	{
+		return other == client_info;
+	}
+};
+
+
+
+/*
+ *	Server subsystem for TRKS (Tintirek's Server)
+ * 
+ *	It is the program loop OF Tintirek's Server software.
+ */
+class TrkServer
+{
+public:
+	TrkServer(int Port, TrkCliServerOptionResult* Options) { }
+
+	/*	Starts the server and checks the listening status */
+	virtual bool Init(const char*& ErrorStr) = 0;
+	/*	Updates the server's status, edits connections and audits users */
+	virtual bool Run(const char*& ErrorStr) = 0;
+	/*	Before the program closes, it performs server-related cleaning and
+		resets the connections of connected users */
+	virtual bool Cleanup(const char*& ErrorStr) = 0;
+
+	/*	Handle commands */
+	virtual bool HandleCommand(const char* Message, const char*& Returned);
+
+	/*	Sends packet to client as chunked data */
+	virtual bool SendPacket(int client_socket, const char* message, int& error_code);
+	/*	Recovers packet from all chunk data from client */
+	virtual bool ReceivePacket(int client_socket, const char*& message, const char*& error_msg);
+
+protected:
+	/*	Server's port number */
+	int port_number;
+	/*	Queue length held during connection waiting */
+	static constexpr int backlog = 5;
+	/*	The size of the data buffer to be used for Read/Write operations */
+	static constexpr int buffer_size = 2048;
+
+	/*	Server socket identifier */
+	int server_socket = -1;
+	/*	Maximum amount of sockets to monitor */
+	int max_socket = -1;
+	/*	Main socket set */
+	struct fd_set* master;
+
+	/*  List of clients */
+	class TrkClientInfo* list = nullptr;
+
+	/*	Data of server program */
+	TrkCliServerOptionResult* opt_result = nullptr;
+
+public:
+	/*	If element is unique, addd new element to the end */
+	bool AppendToListUnique(TrkClientInfo* NewElement)
+	{
+		if (list == nullptr)
+		{
+			std::cout << "yes" << std::endl;
+			list = NewElement;
+			NewElement->SetNext(nullptr);
+			return true;
+		}
+
+		TrkClientInfo* current = list;
+		std::cout << (current ? "null" : "not null") << std::endl;
+
+		while (current->GetNext() != nullptr)
+		{
+			if (current->GetNext() == NewElement)
+			{
+				return false;
+			}
+
+			current = current->GetNext();
+		}
+
+		current->SetNext(NewElement);
+		NewElement->SetNext(nullptr);
+		return true;
+	}
+
+	/*	Remove element from the list */
+	bool RemoveFromList(TrkClientInfo* RemoveItem)
+	{
+		TrkClientInfo* current = list;
+		TrkClientInfo* previous = nullptr;
+
+		if (current == RemoveItem)
+		{
+			list = current->GetNext();
+			current->SetNext(nullptr);
+			delete current;
+			return true;
+		}
+
+		while (current)
+		{
+			if (current == RemoveItem)
+			{
+				previous->SetNext(current->GetNext());
+				current->SetNext(nullptr);
+				delete current;
+				return true;
+			}
+
+			previous = current;
+			current = current->GetNext();
+		}
+
+		return false;
+	}
+};
+
+
+#ifdef WIN32
+
+class TrkWindowsServer : public TrkServer
+{
+public:
+	TrkWindowsServer(int Port, TrkCliServerOptionResult* Options);
+
+	virtual bool Init(const char*& ErrorStr) override;
+	virtual bool Run(const char*& ErrorStr) override;
+	virtual bool Cleanup(const char*& ErrorStr) override;
+};
+
+#elif __APPLE__
+
+// @TODO: macOS service support...?
+
+#elif __linux__
+
+class TrkLinuxServer : public TrkServer
+{
+public:
+	TrkLinuxServer(int Port, TrkCliServerOptionResult* Options);
+
+	virtual bool Init(const char*& ErrorStr) override;
+	virtual bool Run(const char*& ErrorStr) override;
+	virtual bool Cleanup(const char*& ErrorStr) override;
+};
+
+#endif
+
+
+
+#endif /* SERVER_H */
