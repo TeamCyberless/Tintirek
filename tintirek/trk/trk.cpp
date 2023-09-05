@@ -10,6 +10,11 @@
 #include <iostream>
 #include <climits>
 #include <string>
+#include <thread>
+
+#ifdef _WIN32
+#include <ws2tcpip.h>
+#endif
 
 #include "trk_types.h"
 #include "trk_cmdline.h"
@@ -297,10 +302,32 @@ int main(int argc, char** argv)
 	default: break;
 	}
 
+	if (opt_result.ip_address == nullptr || opt_result.port == 0)
+	{
+		const char* colon = strchr(opt_result.server_url, ':');
+		if (colon != nullptr)
+		{
+			size_t ipLength = colon - opt_result.server_url;
+
+			char ipBuffer[INET_ADDRSTRLEN];
+			strncpy(ipBuffer, opt_result.server_url, ipLength);
+			ipBuffer[ipLength] = '\0';
+			opt_result.ip_address = ipBuffer;
+
+			const char* portStr = colon + 1;
+			opt_result.port = atoi(portStr);
+		}
+		else
+		{
+			opt_result.ip_address = opt_result.server_url;
+			opt_result.port = 5566;
+		}
+	}
+
 	const char *returned, *errmsg;
 	if (!TrkConnectHelper::SendCommand(opt_result, "GetInformation", errmsg, returned))
 	{
-		std::cerr << "Something really bad happened. Are you sure your version is compatible with the server?" << std::endl;
+		std::cerr << errmsg << std::endl;
 		return EXIT_FAILURE;
 	}
 	else
@@ -340,6 +367,8 @@ int main(int argc, char** argv)
 		}
 	}
 
+	std::chrono::milliseconds sleeptime(100);
+	std::this_thread::sleep_for(sleeptime);
 	if (!opt_result.requested_command->cmd_util->CallCommand(opt_result.requested_command, &opt_result))
 	{
 		print_help(argv[1]);

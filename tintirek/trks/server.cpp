@@ -29,19 +29,67 @@ void TrkServer::HandleConnection(TrkClientInfo* client_info)
 {
 	const char* error_str;
 	const char* message;
-	char ip[INET_ADDRSTRLEN];
-	inet_ntop(AF_INET, &client_info->client_info->sin_addr, ip, INET_ADDRSTRLEN);
 	client_info->mutex = std::make_unique<std::mutex>();
 
 	if (!ReceivePacket(client_info->client_socket, message, error_str))
 	{
-		LOG_ERR("Erorr with " << ip << ":" << htons(client_info->client_info->sin_port) << ": " << error_str);
+		LOG_ERR("Erorr with " << client_info->client_connection_info << ": " << error_str);
 		closesocket(client_info->client_socket);
 		return;
 	}
 
-	std::string command, msg = std::string(message);
-	std::vector<const char*> parameters;
+	const char* returned;
+	HandleCommand(client_info, strdup(message), returned);
+
+	int errcode;
+	if (!SendPacket(client_info->client_socket, returned, errcode))
+	{
+		std::stringstream os;
+		os << "Send error! (errno: " << errcode << ")";
+		LOG_ERR("Error with " << client_info->client_connection_info << ": " << os.str());
+	}
+
+	client_info->mutex->lock();
+	closesocket(client_info->client_socket);
+	LOG_OUT("Connection closed: " << client_info->client_connection_info);
+	RemoveFromList(client_info);
+}
+
+bool TrkServer::HandleConnectionMultiple(TrkClientInfo* client_info, const char*& error_str)
+{
+	const char* message;
+	client_info->mutex = std::make_unique<std::mutex>();
+
+	if (!ReceivePacket(client_info->client_socket, message, error_str))
+	{
+		return false;
+	}
+
+	const char* returned;
+	if (!HandleCommand(client_info, strdup(message), returned))
+	{
+		return false;
+	}
+
+	if (strcmp(returned, "NONE\n") != 0)
+	{
+		int errcode;
+		if (!SendPacket(client_info->client_socket, returned, errcode))
+		{
+			std::stringstream os;
+			os << "Send error! (errno: " << errcode << ")";
+			error_str = strdup(os.str().c_str());
+			return false;
+		}
+	}
+
+	return true;
+}
+
+bool TrkServer::HandleCommand(TrkClientInfo* client_info, const char* Message, const char*& Returned)
+{
+	std::string command, msg = std::string(Message);
+	std::vector<std::string> parameters;
 	size_t pos = msg.find('?');
 	if (pos != std::string::npos)
 	{
@@ -50,39 +98,18 @@ void TrkServer::HandleConnection(TrkClientInfo* client_info)
 		size_t current = pos + 1;
 		while ((pos = msg.find('?', current)) != std::string::npos)
 		{
-			parameters.push_back(strdup(msg.substr(current, pos).c_str()));
+			parameters.push_back(msg.substr(current, pos));
 			current = pos + 1;
 		}
 
-		parameters.push_back(strdup(msg.substr(current).c_str()));
+		parameters.push_back(msg.substr(current));
 	}
 	else
 	{
-		command = message;
+		command = msg;
 	}
 
-	LOG_OUT("Client (" << ip << ":" << htons(client_info->client_info->sin_port) << ") tried to run: " << command);
-
-	const char* returned;
-	HandleCommand(strdup(command.c_str()), parameters.data(), returned);
-
-	int errcode;
-	if (!SendPacket(client_info->client_socket, returned, errcode))
-	{
-		std::stringstream os;
-		os << "Send error! (errno: " << errcode << ")";
-		LOG_ERR("Erorr with " << ip << ":" << htons(client_info->client_info->sin_port) << ": " << os.str());
-	}
-
-	closesocket(client_info->client_socket);
-	LOG_OUT("Connection closed: " << ip << ":" << htons(client_info->client_info->sin_port));
-	client_info->mutex->lock();
-	RemoveFromList(client_info);
-}
-
-bool TrkServer::HandleCommand(const char* Command, const char** Arguments, const char*& Returned)
-{
-	if (strcmp(Command, "GetInformation") == 0)
+	if (command == "GetInformation")
 	{
 		TRK_VERSION_DEFINE_PROGRAM(verinfo);
 
@@ -104,6 +131,37 @@ bool TrkServer::HandleCommand(const char* Command, const char** Arguments, const
 			<< ";"
 			<< "servertime=" << GetTimestamp("%Y/%m/%d %H:%M:%S %z");
 
+		Returned = strdup(os.str().c_str());
+		return true;
+	}
+	else if (command == "MultipleCommands")
+	{
+		int errcode;
+		if (!SendPacket(client_info->client_socket, strdup("OK\n"), errcode))
+		{
+			Returned = strdup("ERROR\n");
+			return false;
+		}
+
+		for (int i = 0; i < std::stoi(parameters[0]); ++i)
+		{
+			const char* error_str;
+			if (!HandleConnectionMultiple(client_info, error_str))
+			{
+				std::stringstream os;
+				os << "ERROR\n" << error_str;
+				Returned = strdup(os.str().c_str());
+				return false;
+			}
+		}
+
+		Returned = strdup("NONE\n");
+		return true;
+	}
+	else if (command == "Add")
+	{
+		std::stringstream os;
+		os << "OK\n" << parameters[0] << " -- " << "opened for client";
 		Returned = strdup(os.str().c_str());
 		return true;
 	}

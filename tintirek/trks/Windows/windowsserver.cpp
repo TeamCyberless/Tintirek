@@ -124,8 +124,10 @@ bool TrkWindowsServer::Run(const char*& ErrorStr)
 
 					char ip[INET_ADDRSTRLEN];
 					inet_ntop(AF_INET, &clientAddr.sin_addr, ip, INET_ADDRSTRLEN);
-					LOG_OUT("Connection established: " << ip << ":" << htons(clientAddr.sin_port));
-					TrkClientInfo* client = new TrkClientInfo(&clientAddr, clientSocket);
+					std::stringstream os;
+					os << ip << ":" << htons(clientAddr.sin_port);
+					TrkClientInfo* client = new TrkClientInfo(&clientAddr, clientSocket, strdup(os.str().c_str()));
+					LOG_OUT("Connection established: " << os.str());
 					AppendToListUnique(client);
 					std::thread(&TrkServer::HandleConnection, this, client).detach();
 				}

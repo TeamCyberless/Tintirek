@@ -57,31 +57,94 @@ bool TrkConnectHelper::SendCommand(TrkCliClientOptionResults& opt_result, const 
 
 	std::string msg(message);
 	size_t firstNewlinePos = msg.find('\n');
-	if (firstNewlinePos != std::string::npos)
-	{
-		std::string firstLine = msg.substr(0, firstNewlinePos);
+	std::string firstLine = (firstNewlinePos != std::string::npos) ? msg.substr(0, firstNewlinePos) : msg;
 
+	if (firstLine == "OK")
+	{
+		if (!Disconnect_Internal(client_socket, ErrorStr))
+		{
+			closesocket(client_socket);
+			return false;
+		}
+
+		if (firstNewlinePos != std::string::npos)
+		{
+			Returned = strdup(msg.substr(firstNewlinePos + 1).c_str());
+		}
+		return true;
+	}
+	else if (firstLine == "ERROR")
+	{
+		if (firstNewlinePos != std::string::npos)
+		{
+			ErrorStr = strdup(msg.substr(firstNewlinePos + 1).c_str());
+		}
+		return false;
+	}
+
+	std::cout << message << std::endl;
+	ErrorStr = "Something strange happened. Are you sure about you are not under any MITM attack?";
+	return false;
+}
+
+bool TrkConnectHelper::SendCommandMultiple(class TrkCliClientOptionResults& opt_result, class TrkCommandQueue* Commands, const char*& ErrorStr, const char*& Returned)
+{
+	int client_socket;
+	if (!Connect_Internal(opt_result, client_socket, ErrorStr))
+	{
+		return false;
+	}
+
+	while (!Commands->IsEmpty())
+	{
+		const char* command = Commands->Peek();
+
+		int errcode;
+		if (!SendPacket(client_socket, command, errcode))
+		{
+			std::stringstream os;
+			os << "Send Failed! (errno: " << errcode << ")";
+#ifdef _WIN32
+			WSACleanup();
+#endif
+			ErrorStr = strdup(os.str().c_str());
+			return false;
+		}
+
+		const char* message;
+		if (!ReceivePacket(client_socket, message, ErrorStr))
+		{
+			closesocket(client_socket);
+			return false;
+		}
+
+		std::string msg(message);
+		size_t firstNewlinePos = msg.find('\n');
+		std::string firstLine = (firstNewlinePos != std::string::npos) ? msg.substr(0, firstNewlinePos) : msg;
+		
 		if (firstLine == "OK")
 		{
-			if (!Disconnect_Internal(client_socket, ErrorStr))
+			if (firstNewlinePos != std::string::npos)
 			{
-				closesocket(client_socket);
-				return false;
+				std::cout << msg.substr(firstNewlinePos + 1) << std::endl;
 			}
-
-			Returned = strdup(msg.substr(firstNewlinePos + 1).c_str());
-			return true;
 		}
 		else if (firstLine == "ERROR")
 		{
 			ErrorStr = strdup(msg.substr(firstNewlinePos + 1).c_str());
 			return false;
 		}
+
+		Commands->Dequeue();
 	}
 
-	std::cout << message << std::endl;
-	ErrorStr = "Something strange happened. Are you sure about you are not under any MITM attack?";
-	return false;
+	if (!Disconnect_Internal(client_socket, ErrorStr))
+	{
+		closesocket(client_socket);
+		return false;
+	}
+
+	return true;
 }
 
 bool TrkConnectHelper::SendPacket(int client_socket, const char* message, int& error_code)
@@ -207,28 +270,6 @@ bool TrkConnectHelper::ReceivePacket(int client_socket, const char*& message, co
 
 bool TrkConnectHelper::Connect_Internal(TrkCliClientOptionResults& opt_result, int& client_socket, const char*& ErrorStr )	
 {
-	if (opt_result.ip_address == nullptr || opt_result.port == 0)
-	{
-		const char* colon = strchr(opt_result.server_url, ':');
-		if (colon != nullptr)
-		{
-			size_t ipLength = colon - opt_result.server_url;
-
-			char ipBuffer[INET_ADDRSTRLEN];
-			strncpy(ipBuffer, opt_result.server_url, ipLength);
-			ipBuffer[ipLength] = '\0';
-			opt_result.ip_address = ipBuffer;
-
-			const char* portStr = colon + 1;
-			opt_result.port = atoi(portStr);
-		}
-		else
-		{
-			opt_result.ip_address = opt_result.server_url;
-			opt_result.port = 5566;
-		}
-	}
-
 #ifdef _WIN32
 	WSADATA wsaData;
 	if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0) {
@@ -246,7 +287,9 @@ bool TrkConnectHelper::Connect_Internal(TrkCliClientOptionResults& opt_result, i
 
 	if (getaddrinfo(opt_result.ip_address, std::to_string(opt_result.port).c_str(), &hints, &result) != 0)
 	{
-		ErrorStr = "getaddrinfo failed.";
+		std::stringstream os;
+		os << "getaddrinfo failed. (errno: " << WSAGetLastError() << ")" << std::endl;
+		ErrorStr = strdup(os.str().c_str());
 #ifdef _WIN32
 		WSACleanup();
 #endif

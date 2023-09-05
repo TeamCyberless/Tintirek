@@ -17,9 +17,10 @@
 class TrkClientInfo
 {
 public:
-	TrkClientInfo(struct sockaddr_in* ClientInfo = nullptr, int Socket = -1)
+	TrkClientInfo(struct sockaddr_in* ClientInfo = nullptr, int Socket = -1, const char* ip_port = nullptr)
 		: client_info(ClientInfo)
 		, client_socket(Socket)
+		, client_connection_info(ip_port)
 	{ }
 
 	~TrkClientInfo()
@@ -36,6 +37,8 @@ public:
 	const struct sockaddr_in* client_info;
 	/*	Client socket number */
 	const int client_socket = -1;
+	/*	Client connection info (IP:PORT) */
+	const char* client_connection_info = nullptr;
 
 protected:
 	/* Linked list's next element */
@@ -112,8 +115,10 @@ public:
 
 	/*  Handle clients */
 	virtual void HandleConnection(TrkClientInfo* client_info);
+	/*  Handles clients by iteration */
+	virtual bool HandleConnectionMultiple(TrkClientInfo* client_info, const char*& error_str);
 	/*	Handle commands */
-	virtual bool HandleCommand(const char* Command, const char** Arguments, const char*& Returned);
+	virtual bool HandleCommand(TrkClientInfo* client_info, const char* Message, const char*& Returned);
 
 	/*	Sends packet to client as chunked data */
 	virtual bool SendPacket(int client_socket, const char* message, int& error_code);
