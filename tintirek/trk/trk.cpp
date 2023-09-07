@@ -37,7 +37,7 @@ const TrkCliOption trk_cli_options[] =
 
 
 	TrkCliOption("add", trkAddCommand, "Open a new file to add it to the repository.", new TrkCliOptionFlag[3] { TRK_CLI_FLAG_IGNORE, TRK_CLI_FLAG_PREVIEW, TRK_CLI_FLAG_TYPE }, 3, TrkCliRequiredOption::REQUIRED, "file/dir"),
-	TrkCliOption("edit", trkAddCommand, "Open an existing file for edit.", new TrkCliOptionFlag[2] { TRK_CLI_FLAG_PREVIEW, TRK_CLI_FLAG_TYPE }, 2, TrkCliRequiredOption::REQUIRED, "file/dir"),
+	TrkCliOption("edit", trkEditCommand, "Open an existing file for edit.", new TrkCliOptionFlag[2] { TRK_CLI_FLAG_PREVIEW, TRK_CLI_FLAG_TYPE }, 2, TrkCliRequiredOption::REQUIRED, "file/dir"),
 	TrkCliOption("delete", trkAddCommand, "Open an existing file for deletion from the repository.", new TrkCliOptionFlag[1] { TRK_CLI_FLAG_PREVIEW }, 1, TrkCliRequiredOption::REQUIRED, "file/dir"),
 	TrkCliOption("revert", trkAddCommand, "Discard changed from an opened file.", new TrkCliOptionFlag[2] { TRK_CLI_FLAG_ADD, TRK_CLI_FLAG_PREVIEW }, 2, TrkCliRequiredOption::REQUIRED, "file/dir"),
 	TrkCliOption("submit", trkAddCommand, "Submit open files to the remote.", new TrkCliOptionFlag[2] { TRK_CLI_FLAG_DESCRIPTION, TRK_CLI_FLAG_REOPEN }, 2, TrkCliRequiredOption::REQUIRED, "file/dir"),

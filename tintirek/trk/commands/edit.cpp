@@ -1,7 +1,7 @@
 /*
- *	add.cpp
+ *	edit.cpp
  *
- *	Tintirek's add command source file
+ *	Tintirek's edit command source file
  */
 
 
@@ -9,16 +9,16 @@
 #include <filesystem>
 #include <sstream>
 
-#include "add.h"
+#include "edit.h"
 #include "connect.h"
 
 namespace fs = std::filesystem;
 
 
-bool TrkCliAddCommand::CallCommand_Implementation(const TrkCliOption* Options, TrkCliOptionResults* Results)
+bool TrkCliEditCommand::CallCommand_Implementation(const TrkCliOption* Options, TrkCliOptionResults* Results)
 {
 	TrkCliClientOptionResults* ClientResults = static_cast<TrkCliClientOptionResults*>(Results);
-	TrkCommandQueue addQueue("");
+	TrkCommandQueue editQueue("");
 
 	try
 	{
@@ -29,7 +29,7 @@ bool TrkCliAddCommand::CallCommand_Implementation(const TrkCliOption* Options, T
 			if (fs::is_directory(targetPath))
 			{
 				TrkCommandQueue* firstElem = new TrkCommandQueue(nullptr);
-				addQueue.Enqueue(firstElem);
+				editQueue.Enqueue(firstElem);
 				int count = 0;
 				for (const auto& entry : fs::recursive_directory_iterator(targetPath))
 				{
@@ -37,8 +37,8 @@ bool TrkCliAddCommand::CallCommand_Implementation(const TrkCliOption* Options, T
 					{
 						++count;
 						std::stringstream os;
-						os << "Add?" << entry.path().string();
-						addQueue.Enqueue(new TrkCommandQueue(strdup(os.str().c_str())));
+						os << "Edit?" << entry.path().string();
+						editQueue.Enqueue(new TrkCommandQueue(strdup(os.str().c_str())));
 					}
 				}
 				std::stringstream os;
@@ -49,13 +49,13 @@ bool TrkCliAddCommand::CallCommand_Implementation(const TrkCliOption* Options, T
 				const char* errmsg;
 				const char* returned;
 				std::stringstream os;
-				os << "Add?" << targetPath.string() << std::endl;
+				os << "Edit?" << targetPath.string() << std::endl;
 				if (!TrkConnectHelper::SendCommand(*ClientResults, strdup(os.str().c_str()), errmsg, returned))
 				{
 					std::cerr << errmsg << std::endl << std::endl;
 					return false;
 				}
-				
+
 				return true;
 			}
 		}
@@ -67,18 +67,17 @@ bool TrkCliAddCommand::CallCommand_Implementation(const TrkCliOption* Options, T
 
 	const char* errmsg;
 	const char* returned;
-	if (!TrkConnectHelper::SendCommandMultiple(*ClientResults, &addQueue, errmsg, returned))
+	if (!TrkConnectHelper::SendCommandMultiple(*ClientResults, &editQueue, errmsg, returned))
 	{
 		std::cerr << errmsg << std::endl << std::endl;
-		return false;
+		return true;
 	}
 
 	return true;
 }
 
-bool TrkCliAddCommand::CheckCommandFlags_Implementation(const char Flag)
+bool TrkCliEditCommand::CheckCommandFlags_Implementation(const char Flag)
 {
-	return	Flag == 'i' ||
-			Flag == 'p' ||
+	return	Flag == 'p' ||
 			Flag == 't';
 }

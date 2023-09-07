@@ -12,12 +12,14 @@
 
 /* Includes of all commands */
 #include "commands/add.h"
+#include "commands/edit.h"
 #include "commands/info.h"
 
 
 /* All commands are generated here */
-TrkCliCommand* trkInfoCommand = new TrkCliInfoCommand;
 TrkCliCommand* trkAddCommand = new TrkCliAddCommand;
+TrkCliCommand* trkEditCommand = new TrkCliEditCommand;
+TrkCliCommand* trkInfoCommand = new TrkCliInfoCommand;
 
 
 

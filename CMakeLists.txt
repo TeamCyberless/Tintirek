@@ -39,6 +39,8 @@ add_executable (trk
 	"tintirek/trk/commandline.h"
 	"tintirek/trk/commands/add.h"
 	"tintirek/trk/commands/add.cpp"
+	"tintirek/trk/commands/edit.h"
+	"tintirek/trk/commands/edit.cpp"
 	"tintirek/trk/commands/info.h"
 	"tintirek/trk/commands/info.cpp"
 )

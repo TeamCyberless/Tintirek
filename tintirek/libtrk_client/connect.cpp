@@ -120,19 +120,20 @@ bool TrkConnectHelper::SendCommandMultiple(class TrkCliClientOptionResults& opt_
 
 		std::string msg(message);
 		size_t firstNewlinePos = msg.find('\n');
-		std::string firstLine = (firstNewlinePos != std::string::npos) ? msg.substr(0, firstNewlinePos) : msg;
 		
-		if (firstLine == "OK")
+		if (firstNewlinePos != std::string::npos)
 		{
-			if (firstNewlinePos != std::string::npos)
+			std::string firstLine = msg.substr(0, firstNewlinePos);
+
+			if (firstLine == "OK")
 			{
 				std::cout << msg.substr(firstNewlinePos + 1) << std::endl;
 			}
-		}
-		else if (firstLine == "ERROR")
-		{
-			ErrorStr = strdup(msg.substr(firstNewlinePos + 1).c_str());
-			return false;
+			else if (firstLine == "ERROR")
+			{
+				ErrorStr = strdup(msg.substr(firstNewlinePos + 1).c_str());
+				return false;
+			}
 		}
 
 		Commands->Dequeue();

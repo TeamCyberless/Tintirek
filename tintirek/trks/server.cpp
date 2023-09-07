@@ -68,6 +68,7 @@ bool TrkServer::HandleConnectionMultiple(TrkClientInfo* client_info, const char*
 	const char* returned;
 	if (!HandleCommand(client_info, strdup(message), returned))
 	{
+		error_str = returned;
 		return false;
 	}
 
@@ -162,6 +163,13 @@ bool TrkServer::HandleCommand(TrkClientInfo* client_info, const char* Message, c
 	{
 		std::stringstream os;
 		os << "OK\n" << parameters[0] << " -- " << "opened for client";
+		Returned = strdup(os.str().c_str());
+		return true;
+	}
+	else if (command == "Edit")
+	{
+		std::stringstream os;
+		os << "OK\n" << parameters[0] << " -- " << "already opened for client";
 		Returned = strdup(os.str().c_str());
 		return true;
 	}
