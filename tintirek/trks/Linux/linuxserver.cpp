@@ -18,15 +18,15 @@ TrkLinuxServer::TrkServer(int Port)
 
 }
 
-bool TrkLinuxServer::Init(const char* ErrorStr)
+bool TrkLinuxServer::Init(TrkString ErrorStr)
 {
 }
 
-bool TrkLinuxServer::Run(const char* ErrorStr)
+bool TrkLinuxServer::Run(TrkString ErrorStr)
 {
 }
 
-bool TrkLinuxServer::Cleanup(const char* ErrorStr)
+bool TrkLinuxServer::Cleanup(TrkString ErrorStr)
 {
 }
 

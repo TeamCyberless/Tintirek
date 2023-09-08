@@ -9,11 +9,11 @@
 
 #include "trk_version.h"
 
-const char* TrkVersion::getFullVersionInfo() const
+TrkString TrkVersion::getFullVersionInfo() const
 {
-	std::stringstream os;
-	os << major_ << "." << minor_ << "." << patch_ << tag_;
-	return strdup(os.str().c_str());
+	TrkString ss;
+	ss << major_ << "." << minor_ << "." << patch_ << tag_;
+	return ss;
 }
 
 bool TrkVersion::TrkVerCompatible(const TrkVersion* my_version, const TrkVersion* lib_version)
@@ -38,7 +38,7 @@ std::ostream& operator << (std::ostream& os, const TrkVersion& obj)
 	return os;
 }
 
-bool TrkVersionHelper::CheckVersionList(const TrkVersion* MyVersion, const TrkVersion** CheckList, bool UseEqual, const char*& ErrorString)
+bool TrkVersionHelper::CheckVersionList(const TrkVersion* MyVersion, const TrkVersion** CheckList, bool UseEqual, TrkString& ErrorString)
 {
 	for (int i = 0; (CheckList[i]) != nullptr; i++)
 	{
@@ -47,8 +47,8 @@ bool TrkVersionHelper::CheckVersionList(const TrkVersion* MyVersion, const TrkVe
 			!TrkVersion::TrkVerEqual(MyVersion, current_check) :
 			!TrkVersion::TrkVerCompatible(MyVersion, current_check))
 		{
-			std::stringstream os;
-			os << "Version mistach in "
+			TrkString ss;
+			ss << "Version mistach in "
 				<< current_check->getLabel() 
 				<< " \"" << current_check->getFullVersionInfo() 
 				<< "\", must be" 
@@ -56,7 +56,7 @@ bool TrkVersionHelper::CheckVersionList(const TrkVersion* MyVersion, const TrkVe
 				<< " \"" << MyVersion->getFullVersionInfo()
 				<< "\"";
 
-			ErrorString = strdup(os.str().c_str());
+			ErrorString = ss;
 
 			return false;
 		}

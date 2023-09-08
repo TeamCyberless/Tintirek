@@ -17,7 +17,7 @@
 class TrkClientInfo
 {
 public:
-	TrkClientInfo(struct sockaddr_in* ClientInfo = nullptr, int Socket = -1, const char* ip_port = nullptr)
+	TrkClientInfo(struct sockaddr_in* ClientInfo = nullptr, int Socket = -1, TrkString ip_port = nullptr)
 		: client_info(ClientInfo)
 		, client_socket(Socket)
 		, client_connection_info(ip_port)
@@ -38,7 +38,7 @@ public:
 	/*	Client socket number */
 	const int client_socket = -1;
 	/*	Client connection info (IP:PORT) */
-	const char* client_connection_info = nullptr;
+	TrkString client_connection_info = "";
 
 protected:
 	/* Linked list's next element */
@@ -106,24 +106,24 @@ public:
 	TrkServer(int Port, TrkCliServerOptionResult* Options) { }
 
 	/*	Starts the server and checks the listening status */
-	virtual bool Init(const char*& ErrorStr) = 0;
+	virtual bool Init(TrkString& ErrorStr) = 0;
 	/*	Updates the server's status, edits connections and audits users */
-	virtual bool Run(const char*& ErrorStr) = 0;
+	virtual bool Run(TrkString& ErrorStr) = 0;
 	/*	Before the program closes, it performs server-related cleaning and
 		resets the connections of connected users */
-	virtual bool Cleanup(const char*& ErrorStr) = 0;
+	virtual bool Cleanup(TrkString& ErrorStr) = 0;
 
 	/*  Handle clients */
 	virtual void HandleConnection(TrkClientInfo* client_info);
 	/*  Handles clients by iteration */
-	virtual bool HandleConnectionMultiple(TrkClientInfo* client_info, const char*& error_str);
+	virtual bool HandleConnectionMultiple(TrkClientInfo* client_info, TrkString& error_str);
 	/*	Handle commands */
-	virtual bool HandleCommand(TrkClientInfo* client_info, const char* Message, const char*& Returned);
+	virtual bool HandleCommand(TrkClientInfo* client_info, const TrkString Message, TrkString& Returned);
 
 	/*	Sends packet to client as chunked data */
-	virtual bool SendPacket(int client_socket, const char* message, int& error_code);
+	virtual bool SendPacket(int client_socket, const TrkString message, int& error_code);
 	/*	Recovers packet from all chunk data from client */
-	virtual bool ReceivePacket(int client_socket, const char*& message, const char*& error_msg);
+	virtual bool ReceivePacket(int client_socket, TrkString& message, TrkString& error_msg);
 
 protected:
 	/*	Server's port number */
@@ -158,7 +158,6 @@ public:
 		}
 
 		TrkClientInfo* current = list;
-		std::cout << (current ? "null" : "not null") << std::endl;
 
 		while (current->GetNext() != nullptr)
 		{
@@ -217,9 +216,9 @@ class TrkWindowsServer : public TrkServer
 public:
 	TrkWindowsServer(int Port, TrkCliServerOptionResult* Options);
 
-	virtual bool Init(const char*& ErrorStr) override;
-	virtual bool Run(const char*& ErrorStr) override;
-	virtual bool Cleanup(const char*& ErrorStr) override;
+	virtual bool Init(TrkString& ErrorStr) override;
+	virtual bool Run(TrkString& ErrorStr) override;
+	virtual bool Cleanup(TrkString& ErrorStr) override;
 };
 
 #elif __APPLE__
@@ -233,9 +232,9 @@ class TrkLinuxServer : public TrkServer
 public:
 	TrkLinuxServer(int Port, TrkCliServerOptionResult* Options);
 
-	virtual bool Init(const char*& ErrorStr) override;
-	virtual bool Run(const char*& ErrorStr) override;
-	virtual bool Cleanup(const char*& ErrorStr) override;
+	virtual bool Init(TrkString& ErrorStr) override;
+	virtual bool Run(TrkString& ErrorStr) override;
+	virtual bool Cleanup(TrkString& ErrorStr) override;
 };
 
 #endif

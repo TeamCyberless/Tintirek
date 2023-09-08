@@ -37,7 +37,7 @@ public:
 	/* Stores requested command */
 	const TrkCliOption* requested_command = nullptr;
 	/* If any, stores command parameter. Watch out! can be null. */
-	const char* command_parameter = nullptr;
+	TrkString command_parameter = "";
 
 
 	/* If true, result will not effect anything, just for preview */
@@ -53,9 +53,9 @@ public:
 
 
 	/* Type of file affected by the process */
-	const char* filetype = nullptr;
+	TrkString filetype = "";
 	/* Process description */
-	const char* description = nullptr;
+	TrkString description = "";
 
 
 	/* Determines how many files will be affected */
@@ -70,27 +70,27 @@ class TrkCliClientOptionResults : public TrkCliOptionResults
 {
 public:
 	/* Home directory path of our workspace */
-	const char* workspace_path = nullptr;
+	TrkString workspace_path = "";
 	/* The connection addres of the server we want to connect to */
-	const char* server_url = nullptr;
+	TrkString server_url = "";
 	/* The name of the user who will establish the connection */
-	const char* username = nullptr;
+	TrkString username = "";
 	/* The user's password. Maybe will be encrypted */
-	const char* password = nullptr;
+	TrkString password = "";
 	/* If true, trusts remote connection */
 	bool trust = false;
 
 	/* Found IP address from server_url */
-	const char* ip_address = nullptr;
+	TrkString ip_address = "";
 	/* Found port number from server_url */
 	uint16_t port = 0;
 
 	/* Server-side version info */
-	const char* server_version = nullptr;
+	TrkString server_version = "";
 	/* Server-side uptime info */
-	const char* server_uptime = nullptr;
+	TrkString server_uptime = "";
 	/* Server-side time info */
-	const char* server_time = nullptr;
+	TrkString server_time = "";
 };
 
 /* Results of server-side */
@@ -104,13 +104,13 @@ public:
 	long long start_timestamp = 0;
 
 	/* PID file path */
-	const char* pid_file = nullptr;
+	TrkString pid_file = "";
 
 	/* Server running root path */
-	const char* running_root = nullptr;
+	TrkString running_root = "";
 
 	/* Log file destination */
-	const char* log_path = nullptr;
+	TrkString log_path = "";
 
 	/* Server running port */
 	uint16_t port_number = 5566;
@@ -147,10 +147,10 @@ class TrkCliOptionFlag
 	friend class TrkCliOption;
 
 public:
-	TrkCliOptionFlag(const char Character, const char* Description, const char* ParameterName = nullptr)
+	TrkCliOptionFlag(const char Character, const TrkString Description, const TrkString ParameterName = "")
 		: character(Character)
 		, description(Description)
-		, required_parameter(ParameterName != nullptr)
+		, required_parameter(ParameterName != "")
 		, parameter_name(ParameterName)
 		, next_flag(nullptr)
 	{ }
@@ -162,10 +162,10 @@ public:
 	bool required_parameter;
 
 	/* Flag parameter name if it's required */
-	const char* parameter_name;
+	TrkString parameter_name;
 
 	/* The description of this flag */
-	const char* description;
+	TrkString description;
 
 protected:
 	/* Linked list's next element */
@@ -176,7 +176,7 @@ protected:
 	 *
 	 *  Must be called from trk_cli_option
 	 */
-	static const char* Display(TrkCliOption* opt);
+	static TrkString Display(TrkCliOption* opt);
 
 	/*
 	 *	Creates a linked list from given array
@@ -239,7 +239,7 @@ public:
 class TrkCliOption
 {
 public:
-	TrkCliOption(const char* Command, TrkCliCommand* CommandUtilities, const char* Description, TrkCliRequiredOption RequiredParameter = TrkCliRequiredOption::NOT_ALLOWED, const char* ParameterName = "")
+	TrkCliOption(const TrkString Command, TrkCliCommand* CommandUtilities, const TrkString Description, TrkCliRequiredOption RequiredParameter = TrkCliRequiredOption::NOT_ALLOWED, TrkString ParameterName = "")
 		: command(Command)
 		, cmd_util(CommandUtilities)
 		, description(Description)
@@ -248,7 +248,7 @@ public:
 		, parameter_name(ParameterName)
 	{ }
 
-	TrkCliOption(const char* Command, TrkCliCommand* CommandUtilities, const char* Description, TrkCliOptionFlag* Flags = {}, size_t FlagSize = 0, TrkCliRequiredOption RequiredParameter = TrkCliRequiredOption::NOT_ALLOWED, const char* ParameterName = "")
+	TrkCliOption(const TrkString Command, TrkCliCommand* CommandUtilities, const TrkString Description, TrkCliOptionFlag* Flags = {}, size_t FlagSize = 0, TrkCliRequiredOption RequiredParameter = TrkCliRequiredOption::NOT_ALLOWED, const TrkString ParameterName = "")
 		: command(Command)
 		, cmd_util(CommandUtilities)
 		, description(Description)
@@ -258,7 +258,7 @@ public:
 	{ }
 
 	/* Command text */
-	const char* command;
+	const TrkString command;
 
 	/* Flags */
 	TrkCliOptionFlag* head_flag;
@@ -270,13 +270,13 @@ public:
 	TrkCliRequiredOption required_parameter;
 
 	/* Parameter name if it's required */
-	const char* parameter_name;
+	TrkString parameter_name;
 
 	/* The description of this command */
-	const char* description;
+	TrkString description;
 
 	/* Get all flags for help text */
-	const char* GetFlagsForHelpText();
+	TrkString GetFlagsForHelpText();
 };
 
 #endif /* TRK_CMDLINE_H */

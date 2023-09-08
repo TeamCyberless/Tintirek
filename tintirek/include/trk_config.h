@@ -55,7 +55,7 @@ public:
 	static bool LoadConfig(TrkCliOptionResults* Results);
 
 	/* Writes to config file with validation */
-	static bool WriteConfig(const char* FilePath, const char* key, const char* value);
+	static bool WriteConfig(const TrkString FilePath, const TrkString key, const TrkString value);
 };
 
 #endif /* TRK_CONFIG */

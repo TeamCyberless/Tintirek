@@ -12,6 +12,7 @@
 #include <cstdint>
 #include <cstddef>
 
+#include "trk_string.h"
 
 
 /* Revision number. */
@@ -59,10 +60,10 @@ public:
 	trk_revision_number_t revision;
 
 	/* Server-side date of the commit. */
-	const char* date;
+	TrkString date;
 
 	/* Author of the commit. */
-	const char* author;
+	TrkString author;
 };
 
 
@@ -72,13 +73,13 @@ class TrkLock
 {
 public:
 	/* the path this lock applies to. */
-	const char* path;
+	TrkString path;
 
 	/* unique URI representing lock. */
-	const char* token;
+	TrkString token;
 
 	/* the username which owns the lock. */
-	const char* owner;
+	TrkString owner;
 
 	/* when lock was made. */
 	trk_datetime_t creation_date;

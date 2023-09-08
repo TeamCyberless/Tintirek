@@ -27,19 +27,19 @@
 
 void TrkServer::HandleConnection(TrkClientInfo* client_info)
 {
-	const char* error_str;
-	const char* message;
+	TrkString error_str;
+	TrkString message;
 	client_info->mutex = std::make_unique<std::mutex>();
 
 	if (!ReceivePacket(client_info->client_socket, message, error_str))
 	{
-		LOG_ERR("Erorr with " << client_info->client_connection_info << ": " << error_str);
+		LOG_ERR("Error with " << client_info->client_connection_info << ": " << error_str);
 		closesocket(client_info->client_socket);
 		return;
 	}
 
-	const char* returned;
-	HandleCommand(client_info, strdup(message), returned);
+	TrkString returned;
+	HandleCommand(client_info, message, returned);
 
 	int errcode;
 	if (!SendPacket(client_info->client_socket, returned, errcode))
@@ -55,9 +55,9 @@ void TrkServer::HandleConnection(TrkClientInfo* client_info)
 	RemoveFromList(client_info);
 }
 
-bool TrkServer::HandleConnectionMultiple(TrkClientInfo* client_info, const char*& error_str)
+bool TrkServer::HandleConnectionMultiple(TrkClientInfo* client_info, TrkString& error_str)
 {
-	const char* message;
+	TrkString message;
 	client_info->mutex = std::make_unique<std::mutex>();
 
 	if (!ReceivePacket(client_info->client_socket, message, error_str))
@@ -65,8 +65,8 @@ bool TrkServer::HandleConnectionMultiple(TrkClientInfo* client_info, const char*
 		return false;
 	}
 
-	const char* returned;
-	if (!HandleCommand(client_info, strdup(message), returned))
+	TrkString returned;
+	if (!HandleCommand(client_info, message, returned))
 	{
 		error_str = returned;
 		return false;
@@ -77,9 +77,9 @@ bool TrkServer::HandleConnectionMultiple(TrkClientInfo* client_info, const char*
 		int errcode;
 		if (!SendPacket(client_info->client_socket, returned, errcode))
 		{
-			std::stringstream os;
-			os << "Send error! (errno: " << errcode << ")";
-			error_str = strdup(os.str().c_str());
+			TrkString ss;
+			ss << "Send error! (errno: " << errcode << ")";
+			error_str = ss;
 			return false;
 		}
 	}
@@ -87,27 +87,27 @@ bool TrkServer::HandleConnectionMultiple(TrkClientInfo* client_info, const char*
 	return true;
 }
 
-bool TrkServer::HandleCommand(TrkClientInfo* client_info, const char* Message, const char*& Returned)
+bool TrkServer::HandleCommand(TrkClientInfo* client_info, const TrkString Message, TrkString& Returned)
 {
-	std::string command, msg = std::string(Message);
-	std::vector<std::string> parameters;
-	size_t pos = msg.find('?');
+	TrkString command;
+	std::vector<TrkString> parameters;
+	size_t pos = Message.find("?");
 	if (pos != std::string::npos)
 	{
-		command = msg.substr(0, pos);
+		command = Message.substr(0, pos);
 
 		size_t current = pos + 1;
-		while ((pos = msg.find('?', current)) != std::string::npos)
+		while ((pos = Message.find("?", current)) != std::string::npos)
 		{
-			parameters.push_back(msg.substr(current, pos));
+			parameters.push_back(Message.substr(current, pos));
 			current = pos + 1;
 		}
 
-		parameters.push_back(msg.substr(current));
+		parameters.push_back(Message.substr(current));
 	}
 	else
 	{
-		command = msg;
+		command = Message;
 	}
 
 	if (command == "GetInformation")
@@ -122,8 +122,8 @@ bool TrkServer::HandleCommand(TrkClientInfo* client_info, const char* Message, c
 		int minutes = (timeDiff % 3600) / 60;
 		int seconds = timeDiff % 60;
 
-		std::stringstream os;
-		os << "OK\n"
+		TrkString ss;
+		ss << "OK\n"
 			<< "serverversion=" << verinfo.getFullVersionInfo() << ";"
 			<< "serveruptime="
 			<< std::setfill('0') << std::setw(2) << hours << ":"
@@ -132,67 +132,67 @@ bool TrkServer::HandleCommand(TrkClientInfo* client_info, const char* Message, c
 			<< ";"
 			<< "servertime=" << GetTimestamp("%Y/%m/%d %H:%M:%S %z");
 
-		Returned = strdup(os.str().c_str());
+		Returned = ss;
 		return true;
 	}
 	else if (command == "MultipleCommands")
 	{
 		int errcode;
-		if (!SendPacket(client_info->client_socket, strdup("OK\n"), errcode))
+		if (!SendPacket(client_info->client_socket, "OK\n", errcode))
 		{
-			Returned = strdup("ERROR\n");
+			Returned = "ERROR\n";
 			return false;
 		}
 
-		for (int i = 0; i < std::stoi(parameters[0]); ++i)
+		for (int i = 0; i < TrkString::stoi(parameters[0]); ++i)
 		{
-			const char* error_str;
+			TrkString error_str;
 			if (!HandleConnectionMultiple(client_info, error_str))
 			{
-				std::stringstream os;
-				os << "ERROR\n" << error_str;
-				Returned = strdup(os.str().c_str());
+				TrkString ss;
+				ss << "ERROR\n" << error_str;
+				Returned = ss;
 				return false;
 			}
 		}
 
-		Returned = strdup("NONE\n");
+		Returned = "NONE\n";
 		return true;
 	}
 	else if (command == "Add")
 	{
-		std::stringstream os;
-		os << "OK\n" << parameters[0] << " -- " << "opened for client";
-		Returned = strdup(os.str().c_str());
+		TrkString ss;
+		ss << "OK\n" << parameters[0] << " -- " << "opened for client";
+		Returned = ss;
 		return true;
 	}
 	else if (command == "Edit")
 	{
-		std::stringstream os;
-		os << "OK\n" << parameters[0] << " -- " << "already opened for client";
-		Returned = strdup(os.str().c_str());
+		TrkString ss;
+		ss << "OK\n" << parameters[0] << " -- " << "already opened for client";
+		Returned = ss;
 		return true;
 	}
 
-	Returned = strdup("ERROR\nCommand not found");
+	Returned = "ERROR\nCommand not found";
 	return false;
 }
 
-bool TrkServer::SendPacket(int client_socket, const char* message, int& error_code)
+bool TrkServer::SendPacket(int client_socket, const TrkString message, int& error_code)
 {
-	std::string data = message;
 	int totalSent = 0;
 	int chunkSize = 1024;
 
-	while (totalSent < data.size())
+	while (totalSent < message.size())
 	{
 		std::chrono::milliseconds sleeptime(100);
 		std::this_thread::sleep_for(sleeptime);
-		int remaining = data.size() - totalSent;
+		int remaining = message.size() - totalSent;
 		int sendSize = std::min<int>(chunkSize, remaining);
 
-		std::string chunkHeader = std::to_string(sendSize) + "\r\n";
-		if (send(client_socket, chunkHeader.c_str(), chunkHeader.size(), 0) <= 0)
+		TrkString chunkHeader;
+		chunkHeader << sendSize << "\r\n";
+		if (send(client_socket, chunkHeader, chunkHeader.size(), 0) <= 0)
 		{
 #ifdef _WIN32
 			error_code = WSAGetLastError();
@@ -200,8 +200,8 @@ bool TrkServer::SendPacket(int client_socket, const char* message, int& error_co
 			return false;
 		}
 
-		std::vector<char> sendData(data.begin() + totalSent, data.begin() + totalSent + sendSize);
-		if (send(client_socket, sendData.data(), sendData.size(), 0) <= 0)
+		TrkString sendData(message.begin() + totalSent, message.begin() + totalSent + sendSize);
+		if (send(client_socket, sendData, sendData.size(), 0) <= 0)
 		{
 #ifdef _WIN32
 			error_code = WSAGetLastError();
@@ -222,16 +222,18 @@ bool TrkServer::SendPacket(int client_socket, const char* message, int& error_co
 
 	if (send(client_socket, "0\r\n\r\n", 5, 0) <= 0)
 	{
+#ifdef _WIN32
+		error_code = WSAGetLastError();
+#endif
 		return false;
 	}
 
 	return true;
 }
 
-bool TrkServer::ReceivePacket(int client_socket, const char*& message, const char*& error_msg)
+bool TrkServer::ReceivePacket(int client_socket, TrkString& message, TrkString& error_msg)
 {
-	std::vector<char> buffer(1024);
-	std::string receivedData;
+	TrkString buffer, receivedData;
 	bool readingChunkSize = true;
 	int chunkSize = 0, lastIndex = 0;
 
@@ -239,7 +241,8 @@ bool TrkServer::ReceivePacket(int client_socket, const char*& message, const cha
 	{
 		std::chrono::milliseconds sleeptime(100);
 		std::this_thread::sleep_for(sleeptime);
-		int bytesRead = recv(client_socket, buffer.data(), buffer.size(), 0);
+		char internal_string[1024];
+		int bytesRead = recv(client_socket, internal_string, 1024, 0);
 		if (bytesRead < 0)
 		{
 			error_msg = "Receive failed unexceptedly.";
@@ -250,6 +253,8 @@ bool TrkServer::ReceivePacket(int client_socket, const char*& message, const cha
 			continue;
 		}
 
+		buffer = TrkString(internal_string, internal_string + bytesRead);
+
 		lastIndex = 0;
 		for (int i = 0; i < bytesRead; i++) {
 			if (readingChunkSize)
@@ -258,17 +263,17 @@ bool TrkServer::ReceivePacket(int client_socket, const char*& message, const cha
 				{
 					if (i + 1 < bytesRead && buffer[i + 1] == '\n')
 					{
-						std::string chunkSizeStr(buffer.begin() + lastIndex, buffer.begin() + i);
-						chunkSize = std::stoi(chunkSizeStr, nullptr, 16);
+						TrkString chunkSizeStr(buffer.begin() + lastIndex, buffer.begin() + i);
+						chunkSize = TrkString::stoi(chunkSizeStr, 16);
 						if (chunkSize == 0)
 						{
-							const std::string WHITESPACE = "\n\r\t\f\v";
+							TrkString WHITESPACE = "\n\r\t\f\v";
 							size_t index = receivedData.find_first_not_of(WHITESPACE);
-							receivedData = (index == std::string::npos) ? "" : receivedData.substr(index);
+							receivedData = (index == TrkString::npos) ? "" : receivedData.substr(index);
 							index = receivedData.find_last_not_of(WHITESPACE);
-							receivedData = (index == std::string::npos) ? "" : receivedData.substr(0, index + 1);
+							receivedData = (index == TrkString::npos) ? "" : receivedData.substr(0, index + 1);
 
-							message = strdup(receivedData.c_str());
+							message = receivedData;
 							return true;
 						}
 						readingChunkSize = false;
@@ -287,7 +292,7 @@ bool TrkServer::ReceivePacket(int client_socket, const char*& message, const cha
 				{
 					if (i + 1 < bytesRead && buffer[i + 1] == '\n')
 					{
-						receivedData.append(buffer.begin() + lastIndex, buffer.begin() + i);
+						receivedData << TrkString(buffer.begin() + lastIndex, buffer.begin() + i);
 						readingChunkSize = true;
 						lastIndex = i;
 					}

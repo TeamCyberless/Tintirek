@@ -56,7 +56,7 @@ void print_version()
 
 
 /* Prints help to screen */
-void print_help(std::string command)
+void print_help(TrkString command)
 {
 	if (command == "\0")
 	{
@@ -103,7 +103,7 @@ void print_help(std::string command)
 
 
 /* Takes the argument if given, otherwise null and returns false */
-bool return_argument_or_null(const char*& argument, char opt, int& i, char** argv, int argc)
+bool return_argument_or_null(TrkString& argument, char opt, int& i, char** argv, int argc)
 {
 	if (argv[i][2] == '\0' && i + 1 < argc && argv[i + 1][0] != '-')
 	{
@@ -113,7 +113,7 @@ bool return_argument_or_null(const char*& argument, char opt, int& i, char** arg
 	}
 
 	std::cerr << "Parameter [-" << opt << "] requires an argument." << std::endl;
-	argument = nullptr;
+	argument = "";
 	return false;
 }
 
@@ -134,7 +134,7 @@ int main(int argc, char** argv)
 	/* Check library versions */
 	{
 		TRK_VERSION_DEFINE_PROGRAM(MyVer);
-		const char* ErrorStr;
+		TrkString ErrorStr;
 		if (!TrkVersionHelper::CheckVersionList(&MyVer, libVersionList, false, ErrorStr))
 		{
 			std::cerr << ErrorStr << std::endl;
@@ -239,7 +239,8 @@ int main(int argc, char** argv)
 				break;
 
 			case 'm':
-				const char* optarg;
+			{
+				TrkString optarg;
 				if (!return_argument_or_null(optarg, 'm', i, argv, argc))
 				{
 					return EXIT_FAILURE;
@@ -249,7 +250,7 @@ int main(int argc, char** argv)
 					char* endPtr;
 					long result = std::strtoul(optarg, &endPtr, 10);
 
-					if (optarg == endPtr)
+					if (((const char*)optarg) == endPtr)
 					{
 						std::cerr << "Parameter [-" << opt << "] requires an positive numeric argument." << std::endl << std::endl;
 						return EXIT_FAILURE;
@@ -265,6 +266,7 @@ int main(int argc, char** argv)
 						return EXIT_FAILURE;
 					}
 				}
+			}
 				break;
 
 			default:
@@ -280,7 +282,7 @@ int main(int argc, char** argv)
 	{
 	case TrkCliRequiredOption::NOT_ALLOWED:
 
-		if (opt_result.command_parameter != nullptr)
+		if (opt_result.command_parameter != "")
 		{
 			std::cerr << "Command parameter not allowed. Don't use this command with the command parameter." << std::endl << std::endl;
 			print_help(argv[1]);
@@ -290,7 +292,7 @@ int main(int argc, char** argv)
 		break;
 	case TrkCliRequiredOption::REQUIRED:
 
-		if (opt_result.command_parameter == nullptr)
+		if (opt_result.command_parameter == "")
 		{
 			std::cerr << "The command parameter is required and not passed. You must use this command with the command parameter." << std::endl << std::endl;
 			print_help(argv[1]);
@@ -302,20 +304,13 @@ int main(int argc, char** argv)
 	default: break;
 	}
 
-	if (opt_result.ip_address == nullptr || opt_result.port == 0)
+	if (opt_result.ip_address == "" || opt_result.port == 0)
 	{
-		const char* colon = strchr(opt_result.server_url, ':');
-		if (colon != nullptr)
+		size_t found = opt_result.server_url.find(":");
+		if (found != TrkString::npos)
 		{
-			size_t ipLength = colon - opt_result.server_url;
-
-			char ipBuffer[INET_ADDRSTRLEN];
-			strncpy(ipBuffer, opt_result.server_url, ipLength);
-			ipBuffer[ipLength] = '\0';
-			opt_result.ip_address = ipBuffer;
-
-			const char* portStr = colon + 1;
-			opt_result.port = atoi(portStr);
+			opt_result.ip_address = opt_result.server_url.substr(0, found);
+			opt_result.port = atoi(opt_result.server_url.substr(found + 1));
 		}
 		else
 		{
@@ -324,7 +319,7 @@ int main(int argc, char** argv)
 		}
 	}
 
-	const char *returned, *errmsg;
+	TrkString returned, errmsg;
 	if (!TrkConnectHelper::SendCommand(opt_result, "GetInformation", errmsg, returned))
 	{
 		std::cerr << errmsg << std::endl;
@@ -352,15 +347,15 @@ int main(int argc, char** argv)
 
 				if (key == "servertime")
 				{
-					opt_result.server_time = strdup(value.c_str());
+					opt_result.server_time << value;
 				}
 				else if(key == "serveruptime")
 				{
-					opt_result.server_uptime = strdup(value.c_str());
+					opt_result.server_uptime << value;
 				}
 				else if(key == "serverversion")
 				{
-					opt_result.server_version = strdup(value.c_str());
+					opt_result.server_version << value;
 				}
 			}
 			pos = semicolonPos + 1;

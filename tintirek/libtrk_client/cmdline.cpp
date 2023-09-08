@@ -5,8 +5,6 @@
  */
 
 
-#include <string.h>
-#include <sstream>
 #include <vector>
 
 #include "trk_cmdline.h" 
@@ -27,23 +25,23 @@ bool TrkCliCommand::CheckCommandFlags(const char Flag)
 
 /* TrkCliOptionFlag functions */
 
-const char* TrkCliOptionFlag::Display(TrkCliOption* opt)
+TrkString TrkCliOptionFlag::Display(TrkCliOption* opt)
 {
-	std::stringstream returnable;
+	TrkString str;
 
 	for (const auto* flag : *opt->head_flag)
 	{
 		if (flag->required_parameter)
 		{
-			returnable << "[-" << flag->character << " <" << flag->parameter_name << ">] ";
+			str << "[- " << TrkString(flag->character) << " <" << flag->parameter_name << ">] ";
 		}
 		else
 		{
-			returnable << "[-" << flag->character << "] ";
+			str << "[- " << TrkString(flag->character) << "] ";
 		}
 	}
 
-	return strdup(returnable.str().c_str());
+	return str;
 }
 
 TrkCliOptionFlag* TrkCliOptionFlag::CreateList(TrkCliOptionFlag* list, size_t size)
@@ -71,7 +69,7 @@ TrkCliOptionFlag* TrkCliOptionFlag::CreateList(TrkCliOptionFlag* list, size_t si
 
 /* TrkCliOption functions */
 
-const char* TrkCliOption::GetFlagsForHelpText()
+TrkString TrkCliOption::GetFlagsForHelpText()
 {
 	return TrkCliOptionFlag::Display(this);
 }

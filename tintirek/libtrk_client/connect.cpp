@@ -6,9 +6,6 @@
 
 
 #include <iostream>
-#include <string>
-#include <sstream>
-#include <vector>
 #include <chrono>
 #include <thread>
 
@@ -23,12 +20,11 @@
 #include <arpa/inet.h>
 #endif
 
-
 #include "connect.h"
 #include "trk_cmdline.h"
 
 
-bool TrkConnectHelper::SendCommand(TrkCliClientOptionResults& opt_result, const char* Command, const char*& ErrorStr, const char*& Returned)
+bool TrkConnectHelper::SendCommand(TrkCliClientOptionResults& opt_result, const TrkString Command, TrkString& ErrorStr, TrkString& Returned)
 {
 	int client_socket;
 	if (!Connect_Internal(opt_result, client_socket, ErrorStr))
@@ -39,25 +35,24 @@ bool TrkConnectHelper::SendCommand(TrkCliClientOptionResults& opt_result, const 
 	int errcode;
 	if (!SendPacket(client_socket, Command, errcode))
 	{
-		std::stringstream os;
-		os << "Send Failed! (errno: " << errcode << ")";
+		TrkString str;
+		str << "Send Failed! (errno: " << errcode << ")";
 #ifdef _WIN32
 		WSACleanup();
 #endif
-		ErrorStr = strdup(os.str().c_str());
+		ErrorStr = str;
 		return false;
 	}
 
-	const char* message;
+	TrkString message;
 	if (!ReceivePacket(client_socket, message, ErrorStr))
 	{
 		closesocket(client_socket);
 		return false;
 	}
 
-	std::string msg(message);
-	size_t firstNewlinePos = msg.find('\n');
-	std::string firstLine = (firstNewlinePos != std::string::npos) ? msg.substr(0, firstNewlinePos) : msg;
+	size_t firstNewlinePos = message.find("\n");
+	std::string firstLine = (firstNewlinePos != std::string::npos) ? message.substr(0, firstNewlinePos) : message;
 
 	if (firstLine == "OK")
 	{
@@ -69,7 +64,7 @@ bool TrkConnectHelper::SendCommand(TrkCliClientOptionResults& opt_result, const 
 
 		if (firstNewlinePos != std::string::npos)
 		{
-			Returned = strdup(msg.substr(firstNewlinePos + 1).c_str());
+			Returned = message.substr(firstNewlinePos + 1);
 		}
 		return true;
 	}
@@ -77,7 +72,7 @@ bool TrkConnectHelper::SendCommand(TrkCliClientOptionResults& opt_result, const 
 	{
 		if (firstNewlinePos != std::string::npos)
 		{
-			ErrorStr = strdup(msg.substr(firstNewlinePos + 1).c_str());
+			ErrorStr = message.substr(firstNewlinePos + 1);
 		}
 		return false;
 	}
@@ -87,7 +82,7 @@ bool TrkConnectHelper::SendCommand(TrkCliClientOptionResults& opt_result, const 
 	return false;
 }
 
-bool TrkConnectHelper::SendCommandMultiple(class TrkCliClientOptionResults& opt_result, class TrkCommandQueue* Commands, const char*& ErrorStr, const char*& Returned)
+bool TrkConnectHelper::SendCommandMultiple(class TrkCliClientOptionResults& opt_result, class TrkCommandQueue* Commands, TrkString& ErrorStr, TrkString& Returned)
 {
 	int client_socket;
 	if (!Connect_Internal(opt_result, client_socket, ErrorStr))
@@ -102,36 +97,35 @@ bool TrkConnectHelper::SendCommandMultiple(class TrkCliClientOptionResults& opt_
 		int errcode;
 		if (!SendPacket(client_socket, command, errcode))
 		{
-			std::stringstream os;
-			os << "Send Failed! (errno: " << errcode << ")";
+			TrkString str;
+			str << "Send Failed! (errno: " << errcode << ")";
 #ifdef _WIN32
 			WSACleanup();
 #endif
-			ErrorStr = strdup(os.str().c_str());
+			ErrorStr = str;
 			return false;
 		}
 
-		const char* message;
+		TrkString message;
 		if (!ReceivePacket(client_socket, message, ErrorStr))
 		{
 			closesocket(client_socket);
 			return false;
 		}
 
-		std::string msg(message);
-		size_t firstNewlinePos = msg.find('\n');
+		size_t firstNewlinePos = message.find("\n");
 		
 		if (firstNewlinePos != std::string::npos)
 		{
-			std::string firstLine = msg.substr(0, firstNewlinePos);
+			std::string firstLine = message.substr(0, firstNewlinePos);
 
 			if (firstLine == "OK")
 			{
-				std::cout << msg.substr(firstNewlinePos + 1) << std::endl;
+				std::cout << message.substr(firstNewlinePos + 1) << std::endl;
 			}
 			else if (firstLine == "ERROR")
 			{
-				ErrorStr = strdup(msg.substr(firstNewlinePos + 1).c_str());
+				ErrorStr = message.substr(firstNewlinePos + 1);
 				return false;
 			}
 		}
@@ -148,21 +142,21 @@ bool TrkConnectHelper::SendCommandMultiple(class TrkCliClientOptionResults& opt_
 	return true;
 }
 
-bool TrkConnectHelper::SendPacket(int client_socket, const char* message, int& error_code)
+bool TrkConnectHelper::SendPacket(int client_socket, const TrkString message, int& error_code)
 {
-	std::string data = message;
 	int totalSent = 0;
 	int chunkSize = 1024;
 
-	while (totalSent < data.size())
+	while (totalSent < message.size())
 	{
 		std::chrono::milliseconds sleeptime(100);
 		std::this_thread::sleep_for(sleeptime);
-		int remaining = data.size() - totalSent;
+		int remaining = message.size() - totalSent;
 		int sendSize = std::min<int>(chunkSize, remaining);
 
-		std::string chunkHeader = std::to_string(sendSize) + "\r\n";
-		if (send(client_socket, chunkHeader.c_str(), chunkHeader.size(), 0) <= 0)
+		TrkString chunkHeader;
+		chunkHeader << sendSize << "\r\n";
+		if (send(client_socket, chunkHeader, chunkHeader.size(), 0) <= 0)
 		{
 #ifdef _WIN32
 			error_code = WSAGetLastError();
@@ -170,8 +164,9 @@ bool TrkConnectHelper::SendPacket(int client_socket, const char* message, int& e
 			return false;
 		}
 
-		std::vector<char> sendData(data.begin() + totalSent, data.begin() + totalSent + sendSize);
-		if (send(client_socket, sendData.data(), sendData.size(), 0) <= 0)
+		TrkString sendData(message.begin() + totalSent, message.begin() + totalSent + sendSize);
+		int i = send(client_socket, sendData, sendData.size(), 0);
+		if (i <= 0)
 		{
 #ifdef _WIN32
 			error_code = WSAGetLastError();
@@ -192,24 +187,29 @@ bool TrkConnectHelper::SendPacket(int client_socket, const char* message, int& e
 
 	if (send(client_socket, "0\r\n\r\n", 5, 0) <= 0)
 	{
+#ifdef _WIN32
+		error_code = WSAGetLastError();
+#endif
 		return false;
 	}
 
 	return true;
 }
 
-bool TrkConnectHelper::ReceivePacket(int client_socket, const char*& message, const char*& error_msg)
+bool TrkConnectHelper::ReceivePacket(int client_socket, TrkString& message, TrkString& error_msg)
 {
-	std::vector<char> buffer(1024);
-	std::string receivedData;
+	TrkString buffer, receivedData;
 	bool readingChunkSize = true;
 	int chunkSize = 0, lastIndex = 0;
+
+	std::cout << "Will receive" << std::endl;
 
 	while (true)
 	{
 		std::chrono::milliseconds sleeptime(100);
 		std::this_thread::sleep_for(sleeptime);
-		int bytesRead = recv(client_socket, buffer.data(), buffer.size(), 0);
+		char internal_string[1024];
+		int bytesRead = recv(client_socket, internal_string, 1024, 0);
 		if (bytesRead < 0)
 		{
 			error_msg = "Receive failed unexceptedly.";
@@ -220,6 +220,8 @@ bool TrkConnectHelper::ReceivePacket(int client_socket, const char*& message, co
 			continue;
 		}
 
+		buffer = TrkString(internal_string, internal_string + bytesRead);
+
 		lastIndex = 0;
 		for (int i = 0; i < bytesRead; i++) {
 			if (readingChunkSize)
@@ -228,17 +230,17 @@ bool TrkConnectHelper::ReceivePacket(int client_socket, const char*& message, co
 				{
 					if (i + 1 < bytesRead && buffer[i + 1] == '\n')
 					{
-						std::string chunkSizeStr(buffer.begin() + lastIndex, buffer.begin() + i);
-						chunkSize = std::stoi(chunkSizeStr, nullptr, 16);
+						TrkString chunkSizeStr(buffer.begin() + lastIndex, buffer.begin() + i);
+						chunkSize = TrkString::stoi(chunkSizeStr, 16);
 						if (chunkSize == 0)
 						{
-							const std::string WHITESPACE = "\n\r\t\f\v";
+							const TrkString WHITESPACE = "\n\r\t\f\v";
 							size_t index = receivedData.find_first_not_of(WHITESPACE);
-							receivedData = (index == std::string::npos) ? "" : receivedData.substr(index);
+							receivedData = (index == TrkString::npos) ? "" : receivedData.substr(index);
 							index = receivedData.find_last_not_of(WHITESPACE);
-							receivedData = (index == std::string::npos) ? "" : receivedData.substr(0, index + 1);
+							receivedData = (index == TrkString::npos) ? "" : receivedData.substr(0, index + 1);
 
-							message = strdup(receivedData.c_str());
+							message = receivedData;
 							return true;
 						}
 						readingChunkSize = false;
@@ -257,7 +259,8 @@ bool TrkConnectHelper::ReceivePacket(int client_socket, const char*& message, co
 				{
 					if (i + 1 < bytesRead && buffer[i + 1] == '\n')
 					{
-						receivedData.append(buffer.begin() + lastIndex, buffer.begin() + i);
+						receivedData << TrkString(buffer.begin() + lastIndex, buffer.begin() + i); 
+						std::cout << "Received: " << receivedData << std::endl;
 						readingChunkSize = true;
 						lastIndex = i;
 					}
@@ -269,7 +272,7 @@ bool TrkConnectHelper::ReceivePacket(int client_socket, const char*& message, co
 	return true;
 }
 
-bool TrkConnectHelper::Connect_Internal(TrkCliClientOptionResults& opt_result, int& client_socket, const char*& ErrorStr )	
+bool TrkConnectHelper::Connect_Internal(TrkCliClientOptionResults& opt_result, int& client_socket, TrkString& ErrorStr )
 {
 #ifdef _WIN32
 	WSADATA wsaData;
@@ -286,11 +289,13 @@ bool TrkConnectHelper::Connect_Internal(TrkCliClientOptionResults& opt_result, i
 	hints.ai_socktype = SOCK_STREAM;
 	hints.ai_protocol = IPPROTO_TCP;
 
-	if (getaddrinfo(opt_result.ip_address, std::to_string(opt_result.port).c_str(), &hints, &result) != 0)
+	TrkString port;
+	port << opt_result.port;
+	if (getaddrinfo(opt_result.ip_address, port, &hints, &result) != 0)
 	{
-		std::stringstream os;
-		os << "getaddrinfo failed. (errno: " << WSAGetLastError() << ")" << std::endl;
-		ErrorStr = strdup(os.str().c_str());
+		TrkString ss;
+		ss << "getaddrinfo failed. (errno: " << WSAGetLastError() << ")";
+		ErrorStr = ss;
 #ifdef _WIN32
 		WSACleanup();
 #endif
@@ -324,11 +329,10 @@ bool TrkConnectHelper::Connect_Internal(TrkCliClientOptionResults& opt_result, i
 		}
 	}
 
-	freeaddrinfo(result);
-
 	if (client_socket == INVALID_SOCKET) {
-		std::stringstream os;
-		os << "Unable to connect to server. (errno: " << errorCode << ")" << std::endl;
+		freeaddrinfo(result);
+		TrkString ss;
+		ss << "Unable to connect to server. (errno: " << errorCode << ")\n";
 #ifdef _WIN32
 		LPTSTR errorText = NULL;
 		FormatMessage(
@@ -342,7 +346,7 @@ bool TrkConnectHelper::Connect_Internal(TrkCliClientOptionResults& opt_result, i
 		);
 		if (errorText != NULL)
 		{
-			os << opt_result.ip_address << ":" << opt_result.port << " : " << errorText << std::endl;
+			ss << opt_result.ip_address << ":" << opt_result.port << " : " << errorText ;
 		}
 		closesocket(client_socket);
 		WSACleanup();
@@ -350,7 +354,7 @@ bool TrkConnectHelper::Connect_Internal(TrkCliClientOptionResults& opt_result, i
 		os << gai_strerror(errno);
 		close(client_socket);
 #endif
-		ErrorStr = strdup(os.str().c_str());
+		ErrorStr = ss;
 		return false;
 	}
 
@@ -358,7 +362,7 @@ bool TrkConnectHelper::Connect_Internal(TrkCliClientOptionResults& opt_result, i
 	return true;
 }
 
-bool TrkConnectHelper::Disconnect_Internal(int client_socket, const char*& ErrorStr)
+bool TrkConnectHelper::Disconnect_Internal(int client_socket, TrkString& ErrorStr)
 {
 #ifdef _WIN32
 	closesocket(client_socket);

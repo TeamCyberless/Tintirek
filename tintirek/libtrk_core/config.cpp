@@ -14,7 +14,6 @@
 #include <Windows.h>
 #elif __linux__
 #include <string.h>
-#include <algorithm>
 #endif
 
 
@@ -24,11 +23,11 @@ namespace fs = std::filesystem;
 
 
 /* Recursive config finder and loader */
-static bool FindAndLoadConfig(const fs::path& currentPath, const char* configFileName, const char*& valid_path)
+static bool FindAndLoadConfig(const fs::path& currentPath, const char* configFileName, TrkString& valid_path)
 {
     fs::path configPath = currentPath / configFileName;
     if (fs::exists(configPath)) {
-        valid_path = strdup(configPath.string().c_str());
+        valid_path << configPath.string();
         return true;
     }
     else {
@@ -42,7 +41,7 @@ static bool FindAndLoadConfig(const fs::path& currentPath, const char* configFil
 
 bool TrkConfig::LoadConfig(TrkCliOptionResults* Results)
 {
-    const char* valid_path;
+    TrkString valid_path;
     if (FindAndLoadConfig(fs::current_path(), ".trkconfig", valid_path))
     {
         std::ifstream configFile(valid_path);
@@ -54,11 +53,12 @@ bool TrkConfig::LoadConfig(TrkCliOptionResults* Results)
         std::string line;
         while (std::getline(configFile, line))
         {
-            size_t delimiterPos = line.find('=');
+            TrkString line(line.c_str());
+            size_t delimiterPos = line.find("=");
             if (delimiterPos != std::string::npos)
             {
-                std::string key = line.substr(0, delimiterPos);
-                std::string value = line.substr(delimiterPos + 1);
+                TrkString key = line.substr(0, delimiterPos);
+                TrkString value = line.substr(delimiterPos + 1);
 
                 TrkCliClientOptionResults* clientResults = dynamic_cast<TrkCliClientOptionResults*>(Results);
                 if (clientResults)
@@ -66,19 +66,19 @@ bool TrkConfig::LoadConfig(TrkCliOptionResults* Results)
                     if (key == TRK_CONFIG_CLIENT_PASSWORD)
                     {
                         // @TODO: we will pass this as encrypted. 
-                        clientResults->password = strdup(value.c_str());
+                        clientResults->password = value;
                     }
                     else if (key == TRK_CONFIG_CLIENT_PATH)
                     {
-                        clientResults->workspace_path = strdup(value.c_str());
+                        clientResults->workspace_path = value;
                     }
                     else if (key == TRK_CONFIG_CLIENT_SERVERURL)
                     {
-                        clientResults->server_url = strdup(value.c_str());
+                        clientResults->server_url = value;
                     }
                     else if (key == TRK_CONFIG_CLIENT_TRUST)
                     {
-                        std::transform(value.begin(), value.end(), value.begin(), ::tolower);
+                        value.ToLower();
                         
                         if (value == "true" || value == "yes" || value == "1")
                         {
@@ -91,7 +91,7 @@ bool TrkConfig::LoadConfig(TrkCliOptionResults* Results)
                     }
                     else if (key == TRK_CONFIG_CLIENT_USER)
                     {
-                        clientResults->username = strdup(value.c_str());
+                        clientResults->username = value;
                     }
                 }
             }
@@ -104,24 +104,28 @@ bool TrkConfig::LoadConfig(TrkCliOptionResults* Results)
     TrkCliClientOptionResults* clientResults = dynamic_cast<TrkCliClientOptionResults*>(Results);
     if (clientResults)
     {
-        if (clientResults->workspace_path == nullptr)
+        if (clientResults->workspace_path == "" && std::getenv(TRK_ENV_CLIENT_PATH) != nullptr)
         {
             clientResults->workspace_path = std::getenv(TRK_ENV_CLIENT_PATH);
         }
-        if (clientResults->server_url == nullptr)
+        if (clientResults->server_url == "")
         {
-            clientResults->server_url = std::getenv(TRK_ENV_CLIENT_SERVERURL);
-
-            if (clientResults->server_url == nullptr)
+            if (std::getenv(TRK_ENV_CLIENT_SERVERURL) != nullptr)
+            {
+                clientResults->server_url = std::getenv(TRK_ENV_CLIENT_SERVERURL);
+            }
+            else
             {
                 clientResults->server_url = "localhost:5566";
             }
         }
-        if (clientResults->username == nullptr)
+        if (clientResults->username == "")
         {
-            clientResults->username = std::getenv(TRK_ENV_CLIENT_USER);
-
-            if (clientResults->username == nullptr)
+            if (std::getenv(TRK_ENV_CLIENT_USER) != nullptr)
+            {
+                clientResults->username = std::getenv(TRK_ENV_CLIENT_USER);
+            }
+            else
             {
 #ifdef _WIN32
                 TCHAR infoBuf[256];
@@ -129,7 +133,7 @@ bool TrkConfig::LoadConfig(TrkCliOptionResults* Results)
 
                 if (GetComputerName(infoBuf, &bufCharCount))
                 {
-                    clientResults->username = strdup(infoBuf);
+                    clientResults->username = TrkString(infoBuf);
                 }
                 else
                 {
@@ -138,7 +142,7 @@ bool TrkConfig::LoadConfig(TrkCliOptionResults* Results)
 #elif __linux__
                 char hostname[HOST_NAME_MAX];
                 gethostname(hostname, HOST_NAME_MAX);
-                clientResults->username = strdup(hostname);
+                clientResults->username = TrkString(hostname);
 #endif
             }
         }
@@ -147,9 +151,9 @@ bool TrkConfig::LoadConfig(TrkCliOptionResults* Results)
     return true;
 }
 
-bool TrkConfig::WriteConfig(const char* FilePath, const char* key, const char* value)
+bool TrkConfig::WriteConfig(const TrkString FilePath, const TrkString key, const TrkString value)
 {
-    fs::path fsPath(FilePath);
+    fs::path fsPath((const char*)FilePath);
 
     if (fs::exists(fsPath) && fs::is_regular_file(fsPath) && fsPath.filename() == ".trkconfig")
     {
@@ -161,9 +165,9 @@ bool TrkConfig::WriteConfig(const char* FilePath, const char* key, const char* v
             }
         }
 
-        std::string tempFilePath = (tempFolderPath / fsPath.filename()).string();
+        TrkString tempFilePath = (tempFolderPath / fsPath.filename()).string().c_str();
 
-        if (fs::exists(tempFilePath)) {
+        if (fs::exists(std::string(tempFilePath))) {
             std::ofstream tempFile(tempFilePath, std::ios::trunc);
             if (!tempFile.is_open()) {
                 return false;
@@ -180,10 +184,11 @@ bool TrkConfig::WriteConfig(const char* FilePath, const char* key, const char* v
             std::string line;
             while (std::getline(configFileIn, line))
             {
-                size_t delimiterPos = line.find('=');
-                if (delimiterPos != std::string::npos)
+                TrkString line(line.c_str());
+                size_t delimiterPos = line.find("=");
+                if (delimiterPos != TrkString::npos)
                 {
-                    std::string currentKey = line.substr(0, delimiterPos);
+                    TrkString currentKey = line.substr(0, delimiterPos);
                     if (currentKey == key)
                     {
                         found = true;

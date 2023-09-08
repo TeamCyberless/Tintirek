@@ -33,23 +33,21 @@
 
 namespace fs = std::filesystem;
 
-
 /* Options and descriptions for the cmd-line. */
 const TrkCliOptionFlag trk_cli_options[] =
 {
-	TrkCliOptionFlag('v', "Displays version info"),
-	TrkCliOptionFlag('h', "Displays usage"),
+		TrkCliOptionFlag('v', TrkString("Displays version info")),
+		TrkCliOptionFlag('h', TrkString("Displays usage")),
 
-#ifndef WIN32
-	TrkCliOptionFlag('d', "Starts as daemon mode"),
-	TrkCliOptionFlag('i', "Assign a pid file to process"),
-	TrkCliOptionFlag('l', "Defines log file path"),
-#endif
-	
-	TrkCliOptionFlag('p', "Sets server running port"),
-	TrkCliOptionFlag('r', "Sets server root directory"),
+	#ifndef WIN32
+		TrkCliOptionFlag('d', TrkString("Starts as daemon mode")),
+		TrkCliOptionFlag('i', TrkString("Assign a pid file to process")),
+		TrkCliOptionFlag('l', TrkString("Defines log file path")),
+	#endif
+
+		TrkCliOptionFlag('p', TrkString("Sets server running port")),
+		TrkCliOptionFlag('r', TrkString("Sets server root directory")),
 };
-
 
 
 /* Prints version information to screen */
@@ -79,7 +77,7 @@ void print_help(bool print_legal = false)
 
 
 /* Takes the argument if given, otherwise null and returns false */
-bool return_argument_or_null(const char*& argument, char opt, int& i, char** argv, int argc)
+bool return_argument_or_null(TrkString& argument, char opt, int& i, char** argv, int argc)
 {
 	if (argv[i][2] == '\0' && i + 1 < argc && argv[i + 1][0] != '-')
 	{
@@ -89,7 +87,7 @@ bool return_argument_or_null(const char*& argument, char opt, int& i, char** arg
 	}
 
 	std::cerr << "Parameter [-" << opt << "] requires an argument." << std::endl;
-	argument = nullptr;
+	argument = "";
 	return false;
 }
 
@@ -109,7 +107,7 @@ int main(int argc, char** argv)
 	/* Check library versions */
 	{
 		TRK_VERSION_DEFINE_PROGRAM(MyVer);
-		const char* ErrorStr;
+		TrkString ErrorStr;
 		if (!TrkVersionHelper::CheckVersionList(&MyVer, libVersionList, false, ErrorStr))
 		{
 			std::cerr << ErrorStr << std::endl;
@@ -166,7 +164,8 @@ int main(int argc, char** argv)
 				break;
 #endif
 			case 'p':
-				const char* optarg;
+			{
+				TrkString optarg;
 				if (!return_argument_or_null(optarg, 'p', i, argv, argc))
 				{
 					print_help();
@@ -177,7 +176,7 @@ int main(int argc, char** argv)
 					char* endPtr;
 					long result = std::strtol(optarg, &endPtr, 10);
 
-					if (optarg == endPtr)
+					if (((const char*)optarg) == endPtr)
 					{
 						std::cerr << "Parameter [-" << opt << "] requires an positive numeric argument." << std::endl;
 						print_help();
@@ -195,6 +194,7 @@ int main(int argc, char** argv)
 						return EXIT_FAILURE;
 					}
 				}
+			}
 				break;
 
 			case 'r':
@@ -213,26 +213,26 @@ int main(int argc, char** argv)
 		}
 	}
 
-	if (opt_result.pid_file == nullptr)
+	if (opt_result.pid_file == "")
 	{
-		if (opt_result.log_path != nullptr)
+		if (opt_result.log_path != "")
 		{
 			std::cout << "Log path parameter [-l] must be used with PID parameter." << std::endl;
 			print_help();
 			return EXIT_FAILURE;
 		}
 
-		opt_result.pid_file = strdup((fs::temp_directory_path() / "trks.pid").string().c_str());
+		opt_result.pid_file << (fs::temp_directory_path() / "trks.pid").string();
 	}
 
-	if (opt_result.log_path == nullptr)
+	if (opt_result.log_path == "")
 	{
-		opt_result.log_path = strdup(((fs::temp_directory_path() / "trks_log_").string() + GetTimestamp("%Y-%m-%d_%H-%M-%S")).c_str());
+		opt_result.log_path << (fs::temp_directory_path() / "trks_log_").string() << GetTimestamp("%Y-%m-%d_%H-%M-%S");
 	}
 
-	if (opt_result.running_root == nullptr)
+	if (opt_result.running_root == "")
 	{
-		opt_result.running_root = strdup(fs::current_path().string().c_str());
+		opt_result.running_root << fs::current_path().string();
 	}
 
 #ifdef WIN32 
@@ -245,7 +245,7 @@ int main(int argc, char** argv)
 	TrkLinuxServer server(opt_result.port_number, &opt_result);
 #endif
 
-	const char* ErrorStr = nullptr;
+	TrkString ErrorStr = "";
 	service.Initialization();
 	if ((!opt_result.daemon || service.ServiceStart()) && server.Init(ErrorStr))
 	{
@@ -273,10 +273,10 @@ int main(int argc, char** argv)
 			}
 			else
 			{
-				if (ErrorStr)
+				if (ErrorStr != "")
 				{
 					LOG_OUT(ErrorStr);
-					ErrorStr = nullptr;
+					ErrorStr = "";
 				}
 			}
 		}
@@ -290,7 +290,7 @@ int main(int argc, char** argv)
 		return EXIT_FAILURE;
 	}
 
-	if (ErrorStr != nullptr)
+	if (ErrorStr != "")
 	{
 		LOG_ERR(ErrorStr);
 	}
@@ -298,5 +298,5 @@ int main(int argc, char** argv)
 	{
 		LOG_OUT("Goodbye!");
 	}
-	return (ErrorStr != nullptr) ? EXIT_FAILURE : EXIT_SUCCESS;
+	return (ErrorStr != "") ? EXIT_FAILURE : EXIT_SUCCESS;
 }

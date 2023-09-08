@@ -9,24 +9,27 @@
 #define CONNECT_H
 
 
+#include "trk_string.h"
+
+
  /* Connection Helper Class */
 class TrkConnectHelper
 {
 public:
 	/* Send command to server */
-	static bool SendCommand(class TrkCliClientOptionResults& opt_result, const char* Command, const char*& ErrorStr, const char*& Returned);
+	static bool SendCommand(class TrkCliClientOptionResults& opt_result, const TrkString Command, TrkString& ErrorStr, TrkString& Returned);
 	/* Send multiple commands to server */
-	static bool SendCommandMultiple(class TrkCliClientOptionResults& opt_result, class TrkCommandQueue* Commands, const char*& ErrorStr, const char*& Returned);
+	static bool SendCommandMultiple(class TrkCliClientOptionResults& opt_result, class TrkCommandQueue* Commands, TrkString& ErrorStr, TrkString& Returned);
 
 protected:
 	/* Sends packet to client as chunked data */
-	static bool SendPacket(int client_socket, const char* message, int& error_code);
+	static bool SendPacket(int client_socket, const TrkString message, int& error_code);
 	/* Recovers packet from all chunk data from client */
-	static bool ReceivePacket(int client_socket, const char*& message, const char*& error_msg);
+	static bool ReceivePacket(int client_socket, TrkString& message, TrkString& error_msg);
 	/* Internal code for connecting to the server */
-	static bool Connect_Internal(class TrkCliClientOptionResults& opt_result, int& client_socket, const char*& ErrorStr);
+	static bool Connect_Internal(class TrkCliClientOptionResults& opt_result, int& client_socket, TrkString& ErrorStr);
 	/* Internal code for disconnecting from the server */
-	static bool Disconnect_Internal(int client_socket, const char*& ErrorStr);
+	static bool Disconnect_Internal(int client_socket, TrkString& ErrorStr);
 };
 
 
@@ -34,7 +37,7 @@ protected:
 class TrkCommandQueue
 {
 public:
-	TrkCommandQueue(const char* Command)
+	TrkCommandQueue(TrkString Command)
 		: command(Command)
 		, next_queue(nullptr)
 		, queue_front(nullptr)
@@ -78,7 +81,7 @@ public:
 		size--;
 	}
 	/* Peek the next element */
-	const char* Peek()
+	TrkString Peek()
 	{
 		if (IsEmpty())
 		{
@@ -94,7 +97,7 @@ public:
 
 
 	/* Command of this queue element */
-	const char* command;
+	TrkString command;
 private:
 	/* Next queue of this element */
 	TrkCommandQueue* next_queue;

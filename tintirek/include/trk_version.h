@@ -62,7 +62,7 @@
 class TrkVersion
 {
 public:
-	TrkVersion(int major, int minor, int patch, const char* tag, const char* label)
+	TrkVersion(int major, int minor, int patch, const TrkString tag, const TrkString label)
 		: major_(major)
 		, minor_(minor)
 		, patch_(patch)
@@ -80,13 +80,13 @@ public:
     int getPatch() const { return patch_; }
 
     /* Get the version tag */
-    const char* getTag() const { return tag_; }
+    TrkString getTag() const { return tag_; }
 
 	/* Get the version owner label */
-	const char* getLabel() const { return label_; }
+	TrkString getLabel() const { return label_; }
 
 	/* Return full version info */
-	const char* getFullVersionInfo() const;
+	TrkString getFullVersionInfo() const;
 
 	/* Check library version compatibility */
 	static bool TrkVerCompatible(const TrkVersion* my_version, const TrkVersion* lib_version);
@@ -107,9 +107,9 @@ private:
 	/* Patch number */
 	int patch_;
 	/* The version tag, such as " (Development)" or " (Release)" */
-	const char* tag_;
+	TrkString tag_;
 	/* The version owner, such as "program" or "trk_core" */
-	const char* label_;
+	TrkString label_;
 };
 
 
@@ -117,7 +117,7 @@ private:
 class TrkVersionHelper
 {
 public:
-	static bool CheckVersionList(const TrkVersion* MyVersion, const TrkVersion** CheckList, bool UseEqual, const char*& ErrorString);
+	static bool CheckVersionList(const TrkVersion* MyVersion, const TrkVersion** CheckList, bool UseEqual, TrkString& ErrorString);
 };
 
 

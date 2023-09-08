@@ -20,6 +20,7 @@ set(LIBTRK_CLIENT_SOURCES
 set(LIBTRK_CORE_SOURCES
 	"tintirek/libtrk_core/trk_core.h"
 	"tintirek/libtrk_core/config.cpp"
+	"tintirek/libtrk_core/string.cpp"
 	"tintirek/libtrk_core/version.cpp"
 )
 
@@ -59,5 +60,6 @@ add_executable(trks
 )
 
 # Link libraries for each executable
+target_link_libraries(trk_client PRIVATE trk_core)
 target_link_libraries(trk PRIVATE tintirek trk_core trk_client)
 target_link_libraries(trks PRIVATE tintirek trk_core)

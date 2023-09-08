@@ -22,7 +22,7 @@ bool TrkCliAddCommand::CallCommand_Implementation(const TrkCliOption* Options, T
 
 	try
 	{
-		fs::path targetPath = fs::canonical(fs::current_path() / Results->command_parameter);
+		fs::path targetPath = fs::canonical(fs::current_path() / (const char*)Results->command_parameter);
 
 		if (fs::exists(targetPath))
 		{
@@ -36,21 +36,21 @@ bool TrkCliAddCommand::CallCommand_Implementation(const TrkCliOption* Options, T
 					if (fs::is_regular_file(entry))
 					{
 						++count;
-						std::stringstream os;
-						os << "Add?" << entry.path().string();
-						addQueue.Enqueue(new TrkCommandQueue(strdup(os.str().c_str())));
+						TrkString ss;
+						ss << "Add?" << entry.path().string();
+						addQueue.Enqueue(new TrkCommandQueue(ss));
 					}
 				}
-				std::stringstream os;
-				os << "MultipleCommands?" << count;
-				firstElem->command = strdup(os.str().c_str());
+				TrkString ss;
+				ss << "MultipleCommands?" << count;
+				firstElem->command = ss;
 			}
 			else if (fs::is_regular_file(targetPath)) {
-				const char* errmsg;
-				const char* returned;
-				std::stringstream os;
-				os << "Add?" << targetPath.string() << std::endl;
-				if (!TrkConnectHelper::SendCommand(*ClientResults, strdup(os.str().c_str()), errmsg, returned))
+				TrkString errmsg;
+				TrkString returned;
+				TrkString ss;
+				ss << "Add?" << targetPath.string();
+				if (!TrkConnectHelper::SendCommand(*ClientResults, ss, errmsg, returned))
 				{
 					std::cerr << errmsg << std::endl << std::endl;
 					return false;
@@ -65,8 +65,8 @@ bool TrkCliAddCommand::CallCommand_Implementation(const TrkCliOption* Options, T
 		return false;
 	}
 
-	const char* errmsg;
-	const char* returned;
+	TrkString errmsg;
+	TrkString returned;
 	if (!TrkConnectHelper::SendCommandMultiple(*ClientResults, &addQueue, errmsg, returned))
 	{
 		std::cerr << errmsg << std::endl << std::endl;

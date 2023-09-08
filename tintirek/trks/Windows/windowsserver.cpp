@@ -29,7 +29,7 @@ TrkWindowsServer::TrkWindowsServer(int Port, TrkCliServerOptionResult* Options)
 	FD_ZERO(master);
 }
 
-bool TrkWindowsServer::Init(const char*& ErrorStr)
+bool TrkWindowsServer::Init(TrkString& ErrorStr)
 {
 	WSADATA wsaData;
 	if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0)
@@ -91,7 +91,7 @@ bool TrkWindowsServer::Init(const char*& ErrorStr)
 	return true;
 }
 
-bool TrkWindowsServer::Run(const char*& ErrorStr)
+bool TrkWindowsServer::Run(TrkString& ErrorStr)
 {
 	fd_set readSet = *master;
 	struct timeval timeout;
@@ -102,7 +102,7 @@ bool TrkWindowsServer::Run(const char*& ErrorStr)
 	if (activity == SOCKET_ERROR)
 	{
 		int error_code = WSAGetLastError();
-		ErrorStr = strdup(("There's something went wrong. (err: SERVER01-" + std::to_string(error_code) + ")").c_str());
+		ErrorStr << "There's something went wrong. (err: SERVER01-" << std::to_string(error_code) << ")";
 		return false;
 	}
 	else
@@ -124,10 +124,10 @@ bool TrkWindowsServer::Run(const char*& ErrorStr)
 
 					char ip[INET_ADDRSTRLEN];
 					inet_ntop(AF_INET, &clientAddr.sin_addr, ip, INET_ADDRSTRLEN);
-					std::stringstream os;
-					os << ip << ":" << htons(clientAddr.sin_port);
-					TrkClientInfo* client = new TrkClientInfo(&clientAddr, clientSocket, strdup(os.str().c_str()));
-					LOG_OUT("Connection established: " << os.str());
+					TrkString ss;
+					ss << ip << ":" << htons(clientAddr.sin_port);
+					TrkClientInfo* client = new TrkClientInfo(&clientAddr, clientSocket, ss);
+					LOG_OUT("Connection established: " << ss);
 					AppendToListUnique(client);
 					std::thread(&TrkServer::HandleConnection, this, client).detach();
 				}
@@ -138,7 +138,7 @@ bool TrkWindowsServer::Run(const char*& ErrorStr)
 	return true;
 }
 
-bool TrkWindowsServer::Cleanup(const char*& ErrorStr)
+bool TrkWindowsServer::Cleanup(TrkString& ErrorStr)
 {
 	for (int i = 0; i <= max_socket; ++i)
 	{
