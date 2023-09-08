@@ -68,10 +68,6 @@ bool TrkConfig::LoadConfig(TrkCliOptionResults* Results)
                         // @TODO: we will pass this as encrypted. 
                         clientResults->password = value;
                     }
-                    else if (key == TRK_CONFIG_CLIENT_PATH)
-                    {
-                        clientResults->workspace_path = value;
-                    }
                     else if (key == TRK_CONFIG_CLIENT_SERVERURL)
                     {
                         clientResults->server_url = value;
@@ -104,10 +100,6 @@ bool TrkConfig::LoadConfig(TrkCliOptionResults* Results)
     TrkCliClientOptionResults* clientResults = dynamic_cast<TrkCliClientOptionResults*>(Results);
     if (clientResults)
     {
-        if (clientResults->workspace_path == "" && std::getenv(TRK_ENV_CLIENT_PATH) != nullptr)
-        {
-            clientResults->workspace_path = std::getenv(TRK_ENV_CLIENT_PATH);
-        }
         if (clientResults->server_url == "")
         {
             if (std::getenv(TRK_ENV_CLIENT_SERVERURL) != nullptr)

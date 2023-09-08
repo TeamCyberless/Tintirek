@@ -18,8 +18,14 @@
 /* Revision number. */
 typedef long int trk_revision_number_t;
 
+/* Commit number. */
+typedef long long trk_commit_number_t;
+
 /* invalid revision number. */
 #define TRK_INVALID_REVNUM ((trk_revision_number_t)-1)
+
+/* invalid commit number. */
+#define TRK_INVALID_COMMITNUM ((trk_commit_number_t)-1)
 
 /* UNIX type datetime. */
 typedef int64_t trk_datetime_t;
@@ -49,6 +55,62 @@ typedef struct trk_version_t trk_version_t;
 
 /* The keyword for ID generated from a combination of the other four keywords. */
 #define TRK_KEYWORD_ID "Id"
+
+
+
+/* Stores information to which revision number the given file/folder path is synchronized */
+class TrkPathSyncInfoDict
+{
+public:
+	TrkPathSyncInfoDict(TrkString Key = "", trk_revision_number_t RevNum = TRK_INVALID_REVNUM, TrkPathSyncInfoDict* NextElement = nullptr)
+		: next_elem(NextElement)
+		, key(Key)
+		, value(RevNum)
+	{ }
+
+protected:
+	/* Next element of this dictionary */
+	TrkPathSyncInfoDict* next_elem;
+	/* Key value of this element */
+	TrkString key;
+	/* Revision number */
+	trk_revision_number_t value;
+
+public:
+	/* Get next element */
+	TrkPathSyncInfoDict* GetNext() const { return next_elem; }
+	/* Set next element */
+	void SetNext(TrkPathSyncInfoDict* NewElement) { next_elem = NewElement; }
+
+};
+
+
+
+/* Workspace info */
+class TrkWorkspaceInfo
+{
+public:
+	/* Workspace name */
+	TrkString workspace_name;
+
+	/* Workspace path at owner computer */
+	TrkString workspace_path;
+
+	/* Workspace owner name */
+	TrkString username;
+
+	/* Workspace hostname */
+	TrkString workspace_hostname;
+
+	/* Workspace's current commit number */
+	trk_commit_number_t current_commit_num;
+
+	/* List of revision information about paths */
+	TrkPathSyncInfoDict rev_info_list;
+
+	/* Append path info about revision to list */
+	void AppendToRevInfo(TrkPathSyncInfoDict* NewElement);
+};
 
 
 
