@@ -202,8 +202,6 @@ bool TrkConnectHelper::ReceivePacket(int client_socket, TrkString& message, TrkS
 	bool readingChunkSize = true;
 	int chunkSize = 0, lastIndex = 0;
 
-	std::cout << "Will receive" << std::endl;
-
 	while (true)
 	{
 		std::chrono::milliseconds sleeptime(100);
@@ -259,8 +257,7 @@ bool TrkConnectHelper::ReceivePacket(int client_socket, TrkString& message, TrkS
 				{
 					if (i + 1 < bytesRead && buffer[i + 1] == '\n')
 					{
-						receivedData << TrkString(buffer.begin() + lastIndex, buffer.begin() + i); 
-						std::cout << "Received: " << receivedData << std::endl;
+						receivedData << TrkString(buffer.begin() + lastIndex, buffer.begin() + i);
 						readingChunkSize = true;
 						lastIndex = i;
 					}
