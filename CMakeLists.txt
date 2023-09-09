@@ -10,6 +10,14 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 
+
+#############################################
+#											#
+#				PROJECT DEFAULTS			#
+#											#
+#############################################
+
+
 # Set sources for each library
 set(LIBTRK_CLIENT_SOURCES
 	"tintirek/libtrk_client/trk_client.h"
@@ -45,7 +53,6 @@ add_executable (trk
 	"tintirek/trk/commands/info.h"
 	"tintirek/trk/commands/info.cpp"
 )
-
 # Create trks (server program) executable
 add_executable(trks
 	"tintirek/trks/trks.cpp"
@@ -63,3 +70,19 @@ add_executable(trks
 target_link_libraries(trk_client PRIVATE trk_core)
 target_link_libraries(trk PRIVATE tintirek trk_core trk_client)
 target_link_libraries(trks PRIVATE tintirek trk_core)
+
+
+#############################################
+#											#
+#			THIRD PARTY LIBRARIES			#
+#											#
+#############################################
+
+
+# SQLite source code
+add_library(sqlite3 STATIC "deps/sqlite-amalgamation/sqlite3.c")
+
+
+
+# Add libraries to project
+target_link_libraries(tintirek INTERFACE sqlite3)
