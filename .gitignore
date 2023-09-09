@@ -19,3 +19,6 @@ bld/
 [Oo]bj/
 [Ll]og/
 [Ll]ogs/
+
+# Redistributable dependencies folder
+deps/
