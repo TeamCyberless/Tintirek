@@ -28,6 +28,7 @@ set(LIBTRK_CLIENT_SOURCES
 set(LIBTRK_CORE_SOURCES
 	"tintirek/libtrk_core/trk_core.h"
 	"tintirek/libtrk_core/config.cpp"
+	"tintirek/libtrk_core/sqlite3wrapper.cpp"
 	"tintirek/libtrk_core/string.cpp"
 	"tintirek/libtrk_core/version.cpp"
 )
@@ -80,9 +81,13 @@ target_link_libraries(trks PRIVATE tintirek trk_core)
 
 
 # SQLite source code
-add_library(sqlite3 STATIC "deps/sqlite-amalgamation/sqlite3.c")
+add_library(sqlite3 STATIC 
+	"deps/sqlite-amalgamation/sqlite3.c"
+	"deps/sqlite-amalgamation/sqlite3.h"
+	"deps/sqlite-amalgamation/sqlite3ext.h"
+)
 
 
 
 # Add libraries to project
-target_link_libraries(tintirek INTERFACE sqlite3)
+target_link_libraries(trk_core PRIVATE sqlite3)
