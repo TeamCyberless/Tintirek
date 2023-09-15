@@ -27,8 +27,9 @@ set(LIBTRK_CLIENT_SOURCES
 )
 set(LIBTRK_CORE_SOURCES
 	"tintirek/libtrk_core/trk_core.h"
+	"tintirek/libtrk_core/sqlite3.h"
 	"tintirek/libtrk_core/config.cpp"
-	"tintirek/libtrk_core/sqlite3wrapper.cpp"
+	"tintirek/libtrk_core/sqlite3.cpp"
 	"tintirek/libtrk_core/string.cpp"
 	"tintirek/libtrk_core/version.cpp"
 )
