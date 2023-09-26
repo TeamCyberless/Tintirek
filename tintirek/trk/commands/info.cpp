@@ -11,15 +11,60 @@
 #include <filesystem>
 
 #include "trk_version.h"
+#include "connect.h"
 
 namespace fs = std::filesystem;
 
 
 bool TrkCliInfoCommand::CallCommand_Implementation(const TrkCliOption* Options, TrkCliOptionResults* Results)
 {
-	TrkCliClientOptionResults* ClientResults = dynamic_cast<TrkCliClientOptionResults*>(Results);
+	TrkCliClientOptionResults* ClientResults = static_cast<TrkCliClientOptionResults*>(Results);
+
 	if (ClientResults)
 	{
+		TrkString returned, errmsg;
+		if (!TrkConnectHelper::SendCommand(*ClientResults, "GetInformation", errmsg, returned))
+		{
+			std::cerr << errmsg << std::endl;
+			return EXIT_FAILURE;
+		}
+		else
+		{
+			std::string data(returned);
+			size_t pos = 0;
+			size_t semicolonPos;
+
+			if (data.back() != ';')
+			{
+				data += ';';
+			}
+
+			while ((semicolonPos = data.find(';', pos)) != std::string::npos)
+			{
+				std::string param = data.substr(pos, semicolonPos - pos);
+				size_t equalSignPos = param.find('=');
+				if (equalSignPos != std::string::npos)
+				{
+					std::string key = param.substr(0, equalSignPos);
+					std::string value = param.substr(equalSignPos + 1);
+
+					if (key == "servertime")
+					{
+						ClientResults->server_time << value;
+					}
+					else if (key == "serveruptime")
+					{
+						ClientResults->server_uptime << value;
+					}
+					else if (key == "serverversion")
+					{
+						ClientResults->server_version << value;
+					}
+				}
+				pos = semicolonPos + 1;
+			}
+		}
+
 		std::cout <<
 			"User Name: " << ClientResults->username << std::endl <<
 			"Workspace Directory: " << (ClientResults->workspace_path ? ClientResults->workspace_path : "unknown") << std::endl <<

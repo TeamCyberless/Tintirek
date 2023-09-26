@@ -212,6 +212,10 @@ int main(int argc, char** argv)
 				opt_result.preview = true;
 				break;
 
+			case 's':
+				opt_result.showsessionticket = true;
+				break;
+
 			case 't':
 				if (!return_argument_or_null(opt_result.description, 't', i, argv, argc))
 				{
@@ -316,49 +320,6 @@ int main(int argc, char** argv)
 		{
 			opt_result.ip_address = opt_result.server_url;
 			opt_result.port = 5566;
-		}
-	}
-
-	TrkString returned, errmsg;
-	if (!TrkConnectHelper::SendCommand(opt_result, "GetInformation", errmsg, returned))
-	{
-		std::cerr << errmsg << std::endl;
-		return EXIT_FAILURE;
-	}
-	else
-	{
-		std::string data(returned);
-		size_t pos = 0;
-		size_t semicolonPos;
-
-		if (data.back() != ';')
-		{
-			data += ';';
-		}
-
-		while ((semicolonPos = data.find(';', pos)) != std::string::npos)
-		{
-			std::string param = data.substr(pos, semicolonPos - pos);
-			size_t equalSignPos = param.find('=');
-			if (equalSignPos != std::string::npos)
-			{
-				std::string key = param.substr(0, equalSignPos);
-				std::string value = param.substr(equalSignPos + 1);
-
-				if (key == "servertime")
-				{
-					opt_result.server_time << value;
-				}
-				else if(key == "serveruptime")
-				{
-					opt_result.server_uptime << value;
-				}
-				else if(key == "serverversion")
-				{
-					opt_result.server_version << value;
-				}
-			}
-			pos = semicolonPos + 1;
 		}
 	}
 

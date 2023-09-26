@@ -81,14 +81,23 @@ target_link_libraries(trks PRIVATE tintirek trk_core)
 #############################################
 
 
-# SQLite source code
+# SQLite library
 add_library(sqlite3 STATIC 
 	"deps/sqlite-amalgamation/sqlite3.c"
 	"deps/sqlite-amalgamation/sqlite3.h"
 	"deps/sqlite-amalgamation/sqlite3ext.h"
 )
 
+# OpenSSL library
+set(OPENSSL_VERSION "${CMAKE_CURRENT_LIST_DIR}/1.1.1w")
+set(OPENSSL_CRYPTO_LIBRARY "${CMAKE_CURRENT_LIST_DIR}/deps/openssl/libcrypto.lib")
+set(OPENSSL_SSL_LIBRARY "${CMAKE_CURRENT_LIST_DIR}/deps/openssl/libssl.lib")
+set(OPENSSL_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/deps/openssl/include")
+set(OPENSSL_ROOT_DIR "${CMAKE_CURRENT_LIST_DIR}/deps/openssl")
 
+find_package(OpenSSL REQUIRED)
 
 # Add libraries to project
+message(${OPENSSL_SSL_LIBRARY})
 target_link_libraries(trk_core PRIVATE sqlite3)
+target_link_libraries(trk_core PRIVATE ${OPENSSL_SSL_LIBRARY} ${OPENSSL_CRYPTO_LIBRARY})
