@@ -80,12 +80,14 @@ function Get-OpenSSL {
     Import-Module "C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\Tools\Microsoft.VisualStudio.DevShell.dll"
     Enter-VsDevShell 5d11a4c6 -SkipAutomaticLocation -DevCmdArguments "-arch=x64 -host_arch=x64"
 
-    perl ./Configure shared --release --api=1.1.0 no-deprecated no-ssl2 no-ssl3 no-md2 no-rc4 no-idea no-camellia no-ec no-engine no-tests VC-WIN64A
+    perl ./Configure no-shared --release --api=1.1.0 no-deprecated no-ssl2 no-ssl3 no-md2 no-rc4 no-idea no-camellia no-ec no-engine no-tests VC-WIN64A
     nmake
 
     New-Item -ItemType Directory -Path "$DEPDIR\openssl"
-    Copy-Item -Path "$TEMPDIR\$OPENSSL\libcrypto-1_1-x64.dll" -Destination "$DEPDIR\openssl\libcrypto-1_1-x64.dll"
-    Copy-Item -Path "$TEMPDIR\$OPENSSL\libssl-1_1-x64.dll" -Destination "$DEPDIR\openssl\libssl-1_1-x64.dll"
+    Set-Location $DEPDIR
+    Copy-Item -Path "$TEMPDIR\$OPENSSL\libcrypto.lib" -Destination "$DEPDIR\openssl\libcrypto.lib"
+    Copy-Item -Path "$TEMPDIR\$OPENSSL\libssl.lib" -Destination "$DEPDIR\openssl\libssl.lib"
+    Copy-Item -Path "$TEMPDIR\$OPENSSL\include" -Destination "$DEPDIR\openssl\include"
 }
 
 #####################################

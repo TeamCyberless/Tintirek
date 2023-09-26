@@ -70,12 +70,14 @@ get_openssl()
 	# Build OpenSSL and get files
 	cd "$TEMPDIR/$OPENSSL"
 
-	./Configure shared --release --api=1.1.0 no-deprecated no-ssl2 no-ssl3 no-md2 no-rc4 no-idea no-camellia no-ec no-engine no-tests linux-x86_64
+	./Configure no-shared --release --api=1.1.0 no-deprecated no-ssl2 no-ssl3 no-md2 no-rc4 no-idea no-camellia no-ec no-engine no-tests linux-x86_64
 	make
 
 	mkdir -p "$DEPDIR/$OPENSSL"
-	mv "$TEMPDIR/$OPENSSL/libcrypto.so.1.1" "$DEPDIR/$OPENSSL/libcrypto.so.1.1"
-	mv "$TEMPDIR/$OPENSSL/libssl.so.1.1" "$DEPDIR/$OPENSSL/libssl.so.1.1"
+	cd "$BASEDIR"
+	mv "$TEMPDIR/$OPENSSL/libcrypto.a" "$DEPDIR/$OPENSSL/libcrypto.a"
+	mv "$TEMPDIR/$OPENSSL/libssl.a" "$DEPDIR/$OPENSSL/libssl.a"
+	mv "$TEMPDIR/$OPENSSL/include" "$DEPDIR/$OPENSSL/include"
 }
 
 # main process
