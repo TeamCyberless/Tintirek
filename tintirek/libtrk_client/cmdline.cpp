@@ -33,11 +33,11 @@ TrkString TrkCliOptionFlag::Display(TrkCliOption* opt)
 	{
 		if (flag->required_parameter)
 		{
-			str << "[- " << TrkString(flag->character) << " <" << flag->parameter_name << ">] ";
+			str << "[-" << TrkString(flag->character) << " <" << flag->parameter_name << ">] ";
 		}
 		else
 		{
-			str << "[- " << TrkString(flag->character) << "] ";
+			str << "[-" << TrkString(flag->character) << "] ";
 		}
 	}
 

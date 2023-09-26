@@ -42,6 +42,8 @@ public:
 
 	/* If true, result will not effect anything, just for preview */
 	bool preview = false;
+	/* If true, the existing session ticket value is shown  */
+	bool showsessionticket = false;
 	/* If true, process will be more forceful */
 	bool force = false;
 	/* If true, ignore file will be ignored */
