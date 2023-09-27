@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-    "io"
-    "bufio"
+	"io"
+	"bufio"
 	"strings"
 	"strconv"
 	"path/filepath"
@@ -65,10 +65,10 @@ func getopenssl(projectRoot string, openssl string, opensslVer string) {
 	}
 
 	opensslDir := filepath.Join(depsDir, "openssl")
-    if err := os.MkdirAll(opensslDir, os.ModePerm); err != nil {
-        fmt.Println("Error:", err)
-        return
-    }
+	if err := os.MkdirAll(opensslDir, os.ModePerm); err != nil {
+		fmt.Println("Error:", err)
+		return
+	}
 
 	ostype := runtime.GOOS
 	if ostype == "windows" {
@@ -104,39 +104,39 @@ func getopenssl(projectRoot string, openssl string, opensslVer string) {
 			return
 		}
 		psScriptPath = filepath.Join(psScriptPath, "win-build-openssl.ps1")
-	
+
 		cmd := exec.Command("powershell.exe", "-File", psScriptPath, "-tempPath", tempDir, "-openssl", openssl)
 
 		stdout, err = cmd.StdoutPipe()
-	    if err != nil {
-		    fmt.Println("Error:", err)
+		if err != nil {
+			fmt.Println("Error:", err)
 			return
-	    }
+		}
 
 		err = cmd.Start()
 		if err != nil {
-	        fmt.Println("Error:", err)
-		    return
+	        	fmt.Println("Error:", err)
+			return
 		}
 
 		reader := bufio.NewReader(stdout)
 		for {
 			line, err := reader.ReadString('\n')
-	        if err != nil && err == io.EOF {
-		        break
+			if err != nil && err == io.EOF {
+				break
 			}
-	        fmt.Print(line)
+			fmt.Print(line)
 		}
 
 		err = cmd.Wait()
 		if err != nil {
 			if exitErr, ok := err.(*exec.ExitError); ok {
 				exitCode := exitErr.ExitCode()
-	            fmt.Printf("PowerShell: %d\n", exitCode)
+				fmt.Printf("PowerShell: %d\n", exitCode)
 			} else {
 				fmt.Println("Error:", err)
 			}
-		
+
 			return
 		}
 
@@ -151,7 +151,10 @@ func getopenssl(projectRoot string, openssl string, opensslVer string) {
 		}
 	} else if ostype == "linux" {
 		perlcmd := exec.Command("perl", filepath.Join(tempDir, openssl, "Configure"), "no-shared", "--release", "--api=1.1.0", "no-deprecated", "no-ssl2", "no-ssl3", "no-md2", "no-rc4", "no-idea", "no-camellia", "no-ec", "no-engine", "no-tests", "linux-x86_64")
-		makecmd := exec.Command("make", filepath.Join(tempDir, openssl))
+		makecmd := exec.Command("make")
+
+		perlcmd.Dir = filepath.Join(tempDir, openssl)
+		makecmd.Dir = filepath.Join(tempDir, openssl)
 
 		perlcmd.Stdout = os.Stdout
 		perlcmd.Stderr = os.Stderr
@@ -252,8 +255,8 @@ func main() {
 	}
 
 	if err := os.RemoveAll(filepath.Join(PROJECT_DIR, "temp")); err != nil {
-        fmt.Println("Error", err)
-        return
-    }
+		fmt.Println("Error", err)
+		return
+	}
 
 }
