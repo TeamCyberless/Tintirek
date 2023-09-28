@@ -11,23 +11,25 @@
 #include "../server.h"
 
 
-TrkLinuxServer::TrkServer(int Port)
-	: server_socket(INVALID_SOCKET)
-	, port_number(Port)
+TrkLinuxServer::TrkLinuxServer(int Port, TrkCliServerOptionResult* Options)
+	: TrkServer(Port, Options)
 {
 
 }
 
-bool TrkLinuxServer::Init(TrkString ErrorStr)
+bool TrkLinuxServer::Init(TrkString& ErrorStr)
 {
+	return false;
 }
 
-bool TrkLinuxServer::Run(TrkString ErrorStr)
+bool TrkLinuxServer::Run(TrkString& ErrorStr)
 {
+	return false;
 }
 
-bool TrkLinuxServer::Cleanup(TrkString ErrorStr)
+bool TrkLinuxServer::Cleanup(TrkString& ErrorStr)
 {
+	return false;
 }
 
 

@@ -4,6 +4,7 @@
  *	Utilities for the Tintirek Server based on Windows OS
  */
 
+#ifdef WIN32
 
 #include <iostream>
 #include <WinSock2.h>
@@ -154,3 +155,5 @@ bool TrkWindowsServer::Cleanup(TrkString& ErrorStr)
 
 	return true;
 }
+
+#endif /* WIN32 */

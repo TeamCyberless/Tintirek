@@ -9,6 +9,7 @@
 
 
 #include <iostream>
+#include <memory>
 #include <mutex>
 
 #include "trk_config.h"
@@ -138,7 +139,7 @@ protected:
 	/*	Maximum amount of sockets to monitor */
 	int max_socket = -1;
 	/*	Main socket set */
-	struct fd_set* master;
+	typedef fd_set* master;
 
 	/*  List of clients */
 	class TrkClientInfo* list = nullptr;

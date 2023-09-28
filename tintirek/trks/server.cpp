@@ -15,7 +15,12 @@
 #include <WinSock2.h>
 #include <ws2tcpip.h>
 #pragma comment(lib, "ws2_32.lib")
-#elif
+#else
+#include <unistd.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <netdb.h>
 #endif
 
 
@@ -34,7 +39,11 @@ void TrkServer::HandleConnection(TrkClientInfo* client_info)
 	if (!ReceivePacket(client_info->client_socket, message, error_str))
 	{
 		LOG_ERR("Error with " << client_info->client_connection_info << ": " << error_str);
+#if WIN32
 		closesocket(client_info->client_socket);
+#else
+		close(client_info->client_socket);
+#endif
 		return;
 	}
 
@@ -50,7 +59,11 @@ void TrkServer::HandleConnection(TrkClientInfo* client_info)
 	}
 
 	client_info->mutex->lock();
-	closesocket(client_info->client_socket);
+#if WIN32
+		closesocket(client_info->client_socket);
+#else
+		close(client_info->client_socket);
+#endif
 	LOG_OUT("Connection closed: " << client_info->client_connection_info);
 	RemoveFromList(client_info);
 }

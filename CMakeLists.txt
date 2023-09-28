@@ -87,13 +87,22 @@ add_library(sqlite3 STATIC
 	"deps/sqlite-amalgamation/sqlite3.h"
 	"deps/sqlite-amalgamation/sqlite3ext.h"
 )
+set_target_properties(sqlite3 PROPERTIES COMPILE_FLAGS "-fPIC")
 
 # OpenSSL library
 set(OPENSSL_VERSION "${CMAKE_CURRENT_LIST_DIR}/1.1.1w")
-set(OPENSSL_CRYPTO_LIBRARY "${CMAKE_CURRENT_LIST_DIR}/deps/openssl/libcrypto.lib")
-set(OPENSSL_SSL_LIBRARY "${CMAKE_CURRENT_LIST_DIR}/deps/openssl/libssl.lib")
 set(OPENSSL_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/deps/openssl/include")
 set(OPENSSL_ROOT_DIR "${CMAKE_CURRENT_LIST_DIR}/deps/openssl")
+
+if (WIN32)
+	set(OPENSSL_CRYPTO_LIBRARY "${CMAKE_CURRENT_LIST_DIR}/deps/openssl/libcrypto.lib")
+	set(OPENSSL_SSL_LIBRARY "${CMAKE_CURRENT_LIST_DIR}/deps/openssl/libssl.lib")
+elseif(UNIX)
+	set(OPENSSL_CRYPTO_LIBRARY "${CMAKE_CURRENT_LIST_DIR}/deps/openssl/libcrypto.a")
+	set(OPENSSL_SSL_LIBRARY "${CMAKE_CURRENT_LIST_DIR}/deps/openssl/libssl.a")
+else()
+	message(FATAL_ERROR "Only Windows and Linux/Unix platforms are supported now")
+endif()
 
 find_package(OpenSSL REQUIRED)
 

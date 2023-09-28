@@ -18,6 +18,9 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <netdb.h>
+#define INVALID_SOCKET (~0)
+#define SOCKET_ERROR (-1)
 #endif
 
 #include "connect.h"
@@ -47,22 +50,30 @@ bool TrkConnectHelper::SendCommand(TrkCliClientOptionResults& opt_result, const 
 	TrkString message;
 	if (!ReceivePacket(client_socket, message, ErrorStr))
 	{
+#if WIN32
 		closesocket(client_socket);
+#else
+		close(client_socket);
+#endif
 		return false;
 	}
 
 	size_t firstNewlinePos = message.find("\n");
-	std::string firstLine = (firstNewlinePos != std::string::npos) ? message.substr(0, firstNewlinePos) : message;
+	TrkString firstLine = (firstNewlinePos != TrkString::npos) ? message.substr(0, firstNewlinePos) : message;
 
 	if (firstLine == "OK")
 	{
 		if (!Disconnect_Internal(client_socket, ErrorStr))
 		{
+#if WIN32
 			closesocket(client_socket);
+#else
+			close(client_socket);
+#endif
 			return false;
 		}
 
-		if (firstNewlinePos != std::string::npos)
+		if (firstNewlinePos != TrkString::npos)
 		{
 			Returned = message.substr(firstNewlinePos + 1);
 		}
@@ -70,7 +81,7 @@ bool TrkConnectHelper::SendCommand(TrkCliClientOptionResults& opt_result, const 
 	}
 	else if (firstLine == "ERROR")
 	{
-		if (firstNewlinePos != std::string::npos)
+		if (firstNewlinePos != TrkString::npos)
 		{
 			ErrorStr = message.substr(firstNewlinePos + 1);
 		}
@@ -109,15 +120,19 @@ bool TrkConnectHelper::SendCommandMultiple(class TrkCliClientOptionResults& opt_
 		TrkString message;
 		if (!ReceivePacket(client_socket, message, ErrorStr))
 		{
+#if WIN32
 			closesocket(client_socket);
+#else
+			close(client_socket);
+#endif
 			return false;
 		}
 
 		size_t firstNewlinePos = message.find("\n");
 		
-		if (firstNewlinePos != std::string::npos)
+		if (firstNewlinePos != TrkString::npos)
 		{
-			std::string firstLine = message.substr(0, firstNewlinePos);
+			TrkString firstLine = message.substr(0, firstNewlinePos);
 
 			if (firstLine == "OK")
 			{
@@ -135,7 +150,11 @@ bool TrkConnectHelper::SendCommandMultiple(class TrkCliClientOptionResults& opt_
 
 	if (!Disconnect_Internal(client_socket, ErrorStr))
 	{
+#if WIN32
 		closesocket(client_socket);
+#else
+		close(client_socket);
+#endif
 		return false;
 	}
 
@@ -271,17 +290,19 @@ bool TrkConnectHelper::ReceivePacket(int client_socket, TrkString& message, TrkS
 
 bool TrkConnectHelper::Connect_Internal(TrkCliClientOptionResults& opt_result, int& client_socket, TrkString& ErrorStr )
 {
+	struct addrinfo *result = nullptr, *ptr = nullptr, hints;
+
 #ifdef _WIN32
 	WSADATA wsaData;
 	if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0) {
 		ErrorStr = "Winsock startup failed.";
 		return false;
 	}
-#endif
-
-	struct addrinfo* result = nullptr, * ptr = nullptr, hints;
 
 	ZeroMemory(&hints, sizeof(hints));
+#else
+	memset(&hints, 0, sizeof(hints));
+#endif
 	hints.ai_family = AF_INET;
 	hints.ai_socktype = SOCK_STREAM;
 	hints.ai_protocol = IPPROTO_TCP;
@@ -291,10 +312,12 @@ bool TrkConnectHelper::Connect_Internal(TrkCliClientOptionResults& opt_result, i
 	if (getaddrinfo(opt_result.ip_address, port, &hints, &result) != 0)
 	{
 		TrkString ss;
+#ifdef _WIN32
 		ss << "getaddrinfo failed. (errno: " << WSAGetLastError() << ")";
 		ErrorStr = ss;
-#ifdef _WIN32
 		WSACleanup();
+#else
+		ss << "getaddrinfo failed. (errno: " << errno << ")";
 #endif
 		return false;
 	}
@@ -347,8 +370,8 @@ bool TrkConnectHelper::Connect_Internal(TrkCliClientOptionResults& opt_result, i
 		}
 		closesocket(client_socket);
 		WSACleanup();
-#elif
-		os << gai_strerror(errno);
+#else
+		ss << gai_strerror(errno);
 		close(client_socket);
 #endif
 		ErrorStr = ss;

@@ -13,7 +13,9 @@
 #ifdef _WIN32
 #include <Windows.h>
 #elif __linux__
-#include <string.h>
+#include <unistd.h>
+#include <limits.h>
+#include <stdlib.h>
 #endif
 
 
@@ -50,10 +52,10 @@ bool TrkConfig::LoadConfig(TrkCliOptionResults* Results)
             return false;
         }
 
-        std::string line;
-        while (std::getline(configFile, line))
+        std::string l;
+        while (std::getline(configFile, l))
         {
-            TrkString line(line.c_str());
+            TrkString line(l.c_str());
             size_t delimiterPos = line.find("=");
             if (delimiterPos != std::string::npos)
             {
@@ -94,7 +96,6 @@ bool TrkConfig::LoadConfig(TrkCliOptionResults* Results)
         }
 
         configFile.close();
-        delete valid_path;
     }
 
     TrkCliClientOptionResults* clientResults = dynamic_cast<TrkCliClientOptionResults*>(Results);
@@ -173,10 +174,10 @@ bool TrkConfig::WriteConfig(const TrkString FilePath, const TrkString key, const
         if (configFileIn.is_open() && configFileOut.is_open())
         {
             bool found = false;
-            std::string line;
-            while (std::getline(configFileIn, line))
+            std::string l;
+            while (std::getline(configFileIn, l))
             {
-                TrkString line(line.c_str());
+                TrkString line(l.c_str());
                 size_t delimiterPos = line.find("=");
                 if (delimiterPos != TrkString::npos)
                 {
