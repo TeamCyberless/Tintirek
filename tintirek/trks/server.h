@@ -139,7 +139,11 @@ protected:
 	/*	Maximum amount of sockets to monitor */
 	int max_socket = -1;
 	/*	Main socket set */
+#if WIN32
+	struct fd_set* master;
+#else
 	typedef fd_set* master;
+#endif
 
 	/*  List of clients */
 	class TrkClientInfo* list = nullptr;
