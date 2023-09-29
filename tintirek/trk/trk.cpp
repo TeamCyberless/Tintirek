@@ -35,6 +35,8 @@ const TrkCliOption trk_cli_options[] =
 	TrkCliOption("help", nullptr, "Displays help information about Tintirek.", TrkCliRequiredOption::NO_REQUIRED, "command"),
 	TrkCliOption("info", trkInfoCommand, "Displays connection, status and other information about Tintirek", TrkCliRequiredOption::NOT_ALLOWED),
 
+	TrkCliOption("login", trkLoginCommand, "Performs the login process with the server", new TrkCliOptionFlag[1] { TRK_CLI_FLAG_STATUS }, 1, TrkCliRequiredOption::NO_REQUIRED, "user"),
+	TrkCliOption("logout", trkLogoutCommand, "Performs the login process with the server", TrkCliRequiredOption::NOT_ALLOWED),
 
 	TrkCliOption("add", trkAddCommand, "Open a new file to add it to the repository.", new TrkCliOptionFlag[3] { TRK_CLI_FLAG_IGNORE, TRK_CLI_FLAG_PREVIEW, TRK_CLI_FLAG_TYPE }, 3, TrkCliRequiredOption::REQUIRED, "file/dir"),
 	TrkCliOption("edit", trkEditCommand, "Open an existing file for edit.", new TrkCliOptionFlag[2] { TRK_CLI_FLAG_PREVIEW, TRK_CLI_FLAG_TYPE }, 2, TrkCliRequiredOption::REQUIRED, "file/dir"),

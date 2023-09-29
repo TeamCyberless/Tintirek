@@ -14,12 +14,16 @@
 #include "commands/add.h"
 #include "commands/edit.h"
 #include "commands/info.h"
+#include "commands/login.h"
+#include "commands/logout.h"
 
 
 /* All commands are generated here */
 TrkCliCommand* trkAddCommand = new TrkCliAddCommand;
 TrkCliCommand* trkEditCommand = new TrkCliEditCommand;
 TrkCliCommand* trkInfoCommand = new TrkCliInfoCommand;
+TrkCliCommand* trkLoginCommand = new TrkCliLoginCommand;
+TrkCliCommand* trkLogoutCommand = new TrkCliLogoutCommand;
 
 
 
@@ -33,7 +37,10 @@ TrkCliCommand* trkInfoCommand = new TrkCliInfoCommand;
 #define TRK_CLI_FLAG_IGNORE TrkCliOptionFlag('i', "Informs the client that it should not perform any ignore checking.")
 
 /* Previews operation */
-#define TRK_CLI_FLAG_PREVIEW TrkCliOptionFlag('p', "Displays a preview of this command operation without changing any files or metadata.")
+#define TRK_CLI_FLAG_PREVIEW TrkCliOptionFlag('p', "Displays a preview of this command operation without changing any data.")
+
+/* Displays status */
+#define TRK_CLI_FLAG_STATUS TrkCliOptionFlag('s', "Displays the status rather than storing it in the local system.")
 
 /* Specifies filetype of added/edited file */
 #define TRK_CLI_FLAG_TYPE TrkCliOptionFlag('t', "adds/edits the file as the specified filetype, overriding any settings in the typemap table.", "filetype")
@@ -51,7 +58,7 @@ TrkCliCommand* trkInfoCommand = new TrkCliInfoCommand;
 #define TRK_CLI_FLAG_FORCE TrkCliOptionFlag('f', "Forces resynchronization even if the client already has the file.")
 
 /* The amount of maximum file count */
-#define TRK_CLI_FLAG_MAX TrkCliOptionFlag('m', "Limits the number of files to sync.",  "count")
+#define TRK_CLI_FLAG_MAX TrkCliOptionFlag('m', "Limits the number of files to sync.", "count")
 
 
 
