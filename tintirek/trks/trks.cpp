@@ -240,6 +240,7 @@ int main(int argc, char** argv)
 	TrkWindowsServer server(opt_result.port_number, &opt_result);
 #elif __APPLE__
 	// @TODO: macOS service solution
+	return;
 #elif __linux__
 	TrkLinuxService service(opt_result.pid_file, opt_result.log_path);
 	TrkLinuxServer server(opt_result.port_number, &opt_result);

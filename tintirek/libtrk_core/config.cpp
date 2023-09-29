@@ -12,7 +12,7 @@
 
 #ifdef _WIN32
 #include <Windows.h>
-#elif __linux__
+#elif __unix__
 #include <unistd.h>
 #include <limits.h>
 #include <stdlib.h>
@@ -132,7 +132,7 @@ bool TrkConfig::LoadConfig(TrkCliOptionResults* Results)
                 {
                     clientResults->username = "CLIENTUNKNOWN";
                 }
-#elif __linux__
+#elif __unix__
                 char hostname[HOST_NAME_MAX];
                 gethostname(hostname, HOST_NAME_MAX);
                 clientResults->username = TrkString(hostname);

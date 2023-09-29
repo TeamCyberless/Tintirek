@@ -8,17 +8,17 @@ Import-Module "C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\T
 Enter-VsDevShell 5d11a4c6 -SkipAutomaticLocation -DevCmdArguments "-arch=x64 -host_arch=x64"
 
 if (-Not (Get-Command -Name "perl" -ErrorAction SilentlyContinue)) {
-    #Write-Host "Perl command not found. Please install it and try again."
+    Write-Host "Perl command not found. Please install it and try again."
     exit 11
 }
 
 if (-Not (Get-Command -Name "nmake" -ErrorAction SilentlyContinue)) {
-    #Write-Host "NMake command not found. Please install it and try again."
+    Write-Host "NMake command not found. Please install it and try again."
     exit 12
 }
 
 if (-Not (Get-Command -Name "nasm" -ErrorAction SilentlyContinue)) {
-    #Write-Host "nasm command not found. Please install it and try again."
+    Write-Host "nasm command not found. Please install it and try again."
     exit 13
 }
 

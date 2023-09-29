@@ -149,8 +149,35 @@ func getopenssl(projectRoot string, openssl string, opensslVer string) {
 			fmt.Println("Error:", err)
 			return
 		}
-	} else if ostype == "linux" {
-		perlcmd := exec.Command("perl", filepath.Join(tempDir, openssl, "Configure"), "no-shared", "--release", "--api=1.1.0", "no-deprecated", "no-ssl2", "no-ssl3", "no-md2", "no-rc4", "no-idea", "no-camellia", "no-ec", "no-engine", "no-tests", "linux-x86_64")
+	} else {
+		oscompiler := ""
+		if ostype == "linux" {
+			oscompiler = "linux-x86_64"
+		} else if ostype == "darwin" {
+			oscompiler = "darwin64-arm64"
+		} else {
+			fmt.Println("Other platforms are not supported. Supported platforms are Windows, Linux and MacOS")
+			return
+		}
+
+		perlcmd := exec.Command(
+			"perl", 
+			filepath.Join(tempDir, openssl, "Configure"), 
+			"no-shared", 
+			"--release", 
+			"--api=1.1.0", 
+			"no-deprecated", 
+			"no-ssl2", 
+			"no-ssl3", 
+			"no-md2", 
+			"no-rc4", 
+			"no-idea", 
+			"no-camellia", 
+			"no-ec", 
+			"no-engine", 
+			"no-tests",
+			oscompiler,
+		)
 		makecmd := exec.Command("make")
 
 		perlcmd.Dir = filepath.Join(tempDir, openssl)
@@ -180,9 +207,6 @@ func getopenssl(projectRoot string, openssl string, opensslVer string) {
 			fmt.Println("Error:", err)
 			return
 		}
-	} else {
-		fmt.Println("Other platforms are not supported. Supported platforms are Windows and Linux")
-		return
 	}
 
 	if err := os.Rename(filepath.Join(tempDir, openssl, "include"), filepath.Join(opensslDir, "include")); err != nil {
