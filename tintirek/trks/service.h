@@ -54,7 +54,14 @@ public:
 
 #elif __APPLE__
 
-// @TODO: macOS service support...?
+class TrkMacOSService : public TrkServiceInterface
+{
+public:
+	virtual void Initialization() override;
+	virtual bool ServiceStart() override;
+	virtual void ServiceRunning() override;
+	virtual void ServiceNotifyStop() override;
+};
 
 #elif __linux__
 

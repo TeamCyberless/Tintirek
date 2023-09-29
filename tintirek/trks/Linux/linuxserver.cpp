@@ -33,4 +33,4 @@ bool TrkLinuxServer::Cleanup(TrkString& ErrorStr)
 }
 
 
-#endif /* __linux */
+#endif /* __linux__ */

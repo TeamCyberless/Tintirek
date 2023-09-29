@@ -28,7 +28,9 @@ set(LIBTRK_CLIENT_SOURCES
 set(LIBTRK_CORE_SOURCES
 	"tintirek/libtrk_core/trk_core.h"
 	"tintirek/libtrk_core/sqlite3.h"
+	"tintirek/libtrk_core/crypto.h"
 	"tintirek/libtrk_core/config.cpp"
+	"tintirek/libtrk_core/crypto.cpp"
 	"tintirek/libtrk_core/sqlite3.cpp"
 	"tintirek/libtrk_core/string.cpp"
 	"tintirek/libtrk_core/version.cpp"
@@ -67,9 +69,11 @@ add_executable(trks
 	"tintirek/trks/server.cpp"
 	"tintirek/trks/service.h"
 	"tintirek/trks/Linux/linuxserver.cpp"
-	"tintirek/trks/Windows/windowsserver.cpp"
 	"tintirek/trks/Linux/linuxservice.cpp"
+	"tintirek/trks/MacOS/macosserver.cpp"
+	"tintirek/trks/MacOS/macosservice.cpp"
 	"tintirek/trks/Windows/windowsservice.cpp"
+	"tintirek/trks/Windows/windowsserver.cpp"
 )
 
 # Link libraries for each executable

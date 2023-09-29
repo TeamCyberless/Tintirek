@@ -228,7 +228,15 @@ public:
 
 #elif __APPLE__
 
-// @TODO: macOS service support...?
+class TrkMacOSServer : public TrkServer
+{
+public:
+	TrkMacOSServer(int Port, TrkCliServerOptionResult* Options);
+
+	virtual bool Init(TrkString& ErrorStr) override;
+	virtual bool Run(TrkString& ErrorStr) override;
+	virtual bool Cleanup(TrkString& ErrorStr) override;
+};
 
 #elif __linux__
 
