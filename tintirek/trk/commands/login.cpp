@@ -46,10 +46,10 @@ bool TrkCliLoginCommand::CallCommand_Implementation(const TrkCliOption* Options,
 		std::ifstream sessionInfoFile(sessionInfoPath);
 		if (sessionInfoFile.is_open())
 		{
-			std::string line;
-			while (std::getline(sessionInfoFile, line))
+			std::string l;
+			while (std::getline(sessionInfoFile, l))
 			{
-				TrkString line(line.c_str());
+				TrkString line(l.c_str());
 				size_t delimiterPos = line.find("::");
 				if (delimiterPos != TrkString::npos)
 				{
