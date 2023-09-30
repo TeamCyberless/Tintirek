@@ -36,7 +36,7 @@ void TrkServer::HandleConnection(TrkClientInfo* client_info)
 	TrkString message;
 	client_info->mutex = std::make_unique<std::mutex>();
 
-	if (!ReceivePacket(client_info->client_socket, message, error_str))
+	if (!ReceivePacket(client_info, message, error_str))
 	{
 		LOG_ERR("Error with " << client_info->client_connection_info << ": " << error_str);
 #if WIN32
@@ -51,7 +51,7 @@ void TrkServer::HandleConnection(TrkClientInfo* client_info)
 	HandleCommand(client_info, message, returned);
 
 	int errcode;
-	if (!SendPacket(client_info->client_socket, returned, errcode))
+	if (!SendPacket(client_info, returned, errcode))
 	{
 		std::stringstream os;
 		os << "Send error! (errno: " << errcode << ")";
@@ -73,7 +73,7 @@ bool TrkServer::HandleConnectionMultiple(TrkClientInfo* client_info, TrkString& 
 	TrkString message;
 	client_info->mutex = std::make_unique<std::mutex>();
 
-	if (!ReceivePacket(client_info->client_socket, message, error_str))
+	if (!ReceivePacket(client_info, message, error_str))
 	{
 		return false;
 	}
@@ -88,7 +88,7 @@ bool TrkServer::HandleConnectionMultiple(TrkClientInfo* client_info, TrkString& 
 	if (strcmp(returned, "NONE\n") != 0)
 	{
 		int errcode;
-		if (!SendPacket(client_info->client_socket, returned, errcode))
+		if (!SendPacket(client_info, returned, errcode))
 		{
 			TrkString ss;
 			ss << "Send error! (errno: " << errcode << ")";
@@ -151,7 +151,7 @@ bool TrkServer::HandleCommand(TrkClientInfo* client_info, const TrkString Messag
 	else if (command == "MultipleCommands")
 	{
 		int errcode;
-		if (!SendPacket(client_info->client_socket, "OK\n", errcode))
+		if (!SendPacket(client_info, "OK\n", errcode))
 		{
 			Returned = "ERROR\n";
 			return false;
@@ -191,7 +191,7 @@ bool TrkServer::HandleCommand(TrkClientInfo* client_info, const TrkString Messag
 	return false;
 }
 
-bool TrkServer::SendPacket(int client_socket, const TrkString message, int& error_code)
+bool TrkServer::SendPacket(TrkClientInfo* client_info, const TrkString message, int& error_code)
 {
 	int totalSent = 0;
 	int chunkSize = 1024;
@@ -205,7 +205,7 @@ bool TrkServer::SendPacket(int client_socket, const TrkString message, int& erro
 
 		TrkString chunkHeader;
 		chunkHeader << sendSize << "\r\n";
-		if (send(client_socket, chunkHeader, chunkHeader.size(), 0) <= 0)
+		if ((client_info->client_socket, chunkHeader, chunkHeader.size(), 0) <= 0)
 		{
 #ifdef _WIN32
 			error_code = WSAGetLastError();
@@ -214,7 +214,7 @@ bool TrkServer::SendPacket(int client_socket, const TrkString message, int& erro
 		}
 
 		TrkString sendData(message.begin() + totalSent, message.begin() + totalSent + sendSize);
-		if (send(client_socket, sendData, sendData.size(), 0) <= 0)
+		if (Send(client_info, sendData, sendData.size(), client_info->client_ssl_socket != nullptr) <= 0)
 		{
 #ifdef _WIN32
 			error_code = WSAGetLastError();
@@ -222,7 +222,7 @@ bool TrkServer::SendPacket(int client_socket, const TrkString message, int& erro
 			return false;
 		}
 
-		if (send(client_socket, "\r\n", 2, 0) <= 0)
+		if (Send(client_info, "\r\n", 2, client_info->client_ssl_socket != nullptr) <= 0)
 		{
 #ifdef _WIN32
 			error_code = WSAGetLastError();
@@ -233,7 +233,7 @@ bool TrkServer::SendPacket(int client_socket, const TrkString message, int& erro
 		totalSent += sendSize;
 	}
 
-	if (send(client_socket, "0\r\n\r\n", 5, 0) <= 0)
+	if (Send(client_info, "0\r\n\r\n", 5, client_info->client_ssl_socket != nullptr) <= 0)
 	{
 #ifdef _WIN32
 		error_code = WSAGetLastError();
@@ -244,7 +244,7 @@ bool TrkServer::SendPacket(int client_socket, const TrkString message, int& erro
 	return true;
 }
 
-bool TrkServer::ReceivePacket(int client_socket, TrkString& message, TrkString& error_msg)
+bool TrkServer::ReceivePacket(TrkClientInfo* client_info, TrkString& message, TrkString& error_msg)
 {
 	TrkString buffer, receivedData;
 	bool readingChunkSize = true;
@@ -254,8 +254,7 @@ bool TrkServer::ReceivePacket(int client_socket, TrkString& message, TrkString& 
 	{
 		std::chrono::milliseconds sleeptime(100);
 		std::this_thread::sleep_for(sleeptime);
-		char internal_string[1024];
-		int bytesRead = recv(client_socket, internal_string, 1024, 0);
+		int bytesRead = Recv(client_info, buffer, 1024, client_info->client_ssl_socket != nullptr);
 		if (bytesRead < 0)
 		{
 			error_msg = "Receive failed unexceptedly.";
@@ -265,8 +264,6 @@ bool TrkServer::ReceivePacket(int client_socket, TrkString& message, TrkString& 
 		{
 			continue;
 		}
-
-		buffer = TrkString(internal_string, internal_string + bytesRead);
 
 		lastIndex = 0;
 		for (int i = 0; i < bytesRead; i++) {
@@ -315,4 +312,28 @@ bool TrkServer::ReceivePacket(int client_socket, TrkString& message, TrkString& 
 	}
 
 	return true;
+}
+
+int TrkServer::Send(TrkClientInfo* clientInfo, TrkString buf, int len, bool use_ssl)
+{
+	if (use_ssl)
+	{
+		return TrkSSLHelper::Write(clientInfo->client_ssl_socket, buf, len);
+	}
+	else
+	{
+		return send(clientInfo->client_socket, buf, len, 0);
+	}
+}
+
+int TrkServer::Recv(TrkClientInfo* clientInfo, TrkString& buf, int len, bool use_ssl)
+{
+	if (use_ssl)
+	{
+		return TrkSSLHelper::Read(clientInfo->client_ssl_socket, buf, len);
+	}
+	else
+	{
+		return recv(clientInfo->client_socket, buf, len, 0);
+	}
 }

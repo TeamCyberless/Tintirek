@@ -23,3 +23,6 @@ bld/
 
 # Redistributable dependencies folder
 deps/
+
+# Temporary folder
+temp/

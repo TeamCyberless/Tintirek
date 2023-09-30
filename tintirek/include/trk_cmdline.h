@@ -111,6 +111,9 @@ public:
 	/* Server running root path */
 	TrkString running_root = "";
 
+	/* Server SSL files path */
+	TrkString ssl_files_path = "";
+
 	/* Log file destination */
 	TrkString log_path = "";
 

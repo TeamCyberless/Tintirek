@@ -13,14 +13,16 @@
 #include <mutex>
 
 #include "trk_config.h"
+#include "crypto.h"
 
 
 class TrkClientInfo
 {
 public:
-	TrkClientInfo(struct sockaddr_in* ClientInfo = nullptr, int Socket = -1, TrkString ip_port = nullptr)
+	TrkClientInfo(struct sockaddr_in* ClientInfo = nullptr, int Socket = -1, TrkSSL* SSLSocket = nullptr, TrkString ip_port = nullptr)
 		: client_info(ClientInfo)
 		, client_socket(Socket)
+		, client_ssl_socket(SSLSocket)
 		, client_connection_info(ip_port)
 	{ }
 
@@ -30,14 +32,21 @@ public:
 		{
 			delete next_client;
 		}
+
+		if (client_ssl_socket)
+		{
+			delete client_ssl_socket;
+		}
 	}
 
 	/*	Mutex object for async processes */
 	std::unique_ptr<std::mutex> mutex;
 	/*	Client info */
-	const struct sockaddr_in* client_info;
+	struct sockaddr_in* client_info;
 	/*	Client socket number */
 	const int client_socket = -1;
+	/*	Client SSL socket information */
+	TrkSSL* client_ssl_socket;
 	/*	Client connection info (IP:PORT) */
 	TrkString client_connection_info = "";
 
@@ -122,9 +131,14 @@ public:
 	virtual bool HandleCommand(TrkClientInfo* client_info, const TrkString Message, TrkString& Returned);
 
 	/*	Sends packet to client as chunked data */
-	virtual bool SendPacket(int client_socket, const TrkString message, int& error_code);
+	virtual bool SendPacket(TrkClientInfo* client_info, const TrkString message, int& error_code);
 	/*	Recovers packet from all chunk data from client */
-	virtual bool ReceivePacket(int client_socket, TrkString& message, TrkString& error_msg);
+	virtual bool ReceivePacket(TrkClientInfo* client_info, TrkString& message, TrkString& error_msg);
+
+	/* Send implementation with SSL and non-SSL */
+	virtual int Send(TrkClientInfo* clientInfo, TrkString buf, int len, bool use_ssl);
+	/* Recv implementation with SSL and non-SSL */
+	virtual int Recv(TrkClientInfo* clientInfo, TrkString& buf, int len, bool use_ssl);
 
 protected:
 	/*	Server's port number */
@@ -224,6 +238,9 @@ public:
 	virtual bool Init(TrkString& ErrorStr) override;
 	virtual bool Run(TrkString& ErrorStr) override;
 	virtual bool Cleanup(TrkString& ErrorStr) override;
+
+private:
+	TrkSSLCTX ssl_ctx;
 };
 
 #elif __APPLE__

@@ -166,7 +166,6 @@ func getopenssl(projectRoot string, openssl string, opensslVer string) {
 			"no-shared", 
 			"--release", 
 			"--api=1.1.0", 
-			"no-deprecated", 
 			"no-ssl2", 
 			"no-ssl3", 
 			"no-md2", 
@@ -278,8 +277,8 @@ func main() {
 		getopenssl(PROJECT_DIR, OPENSSL, OPENSSL_VERSION)
 	}
 
-	if err := os.RemoveAll(filepath.Join(PROJECT_DIR, "temp")); err != nil {
+	/*if err := os.RemoveAll(filepath.Join(PROJECT_DIR, "temp")); err != nil {
 		fmt.Println("Error", err)
 		return
-	}
+	}*/
 }

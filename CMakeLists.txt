@@ -116,5 +116,12 @@ find_package(OpenSSL REQUIRED)
 
 # Add libraries to project
 message(${OPENSSL_SSL_LIBRARY})
-target_link_libraries(trk_core PRIVATE sqlite3)
-target_link_libraries(trk_core PRIVATE ${OPENSSL_SSL_LIBRARY} ${OPENSSL_CRYPTO_LIBRARY})
+target_link_libraries(trk_core PRIVATE 
+	sqlite3
+	OpenSSL::SSL
+	OpenSSL::Crypto
+)
+target_link_libraries(trk_client PRIVATE
+	OpenSSL::SSL
+	OpenSSL::Crypto
+)

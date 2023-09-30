@@ -12,6 +12,7 @@
 #include <string>
 #include <sstream>
 #include <thread>
+#include <filesystem>
 
 #pragma comment(lib, "ws2_32.lib")
 
@@ -89,11 +90,53 @@ bool TrkWindowsServer::Init(TrkString& ErrorStr)
 
 	FD_SET(server_socket, master);
 	max_socket = server_socket;
+
+	if (opt_result->ssl_files_path != "")
+	{
+		try
+		{
+			TrkSSLHelper::InitSSL();
+			ssl_ctx = TrkSSLHelper::CreateServerMethod();
+			TrkString certificate_path(std::filesystem::path(std::filesystem::canonical((const char*)opt_result->ssl_files_path) / "certificate.pem").string().c_str());
+			TrkString private_key_path(std::filesystem::path(std::filesystem::canonical((const char*)opt_result->ssl_files_path) / "privatekey.pem").string().c_str());
+
+			if (TrkSSLHelper::LoadCertificateFile(ssl_ctx, certificate_path))
+			{
+				ErrorStr << "Certificate file didn't load: " << certificate_path;
+				delete master;
+				closesocket(server_socket);
+				WSACleanup();
+				delete& ssl_ctx;
+				return false;
+			}
+
+			if (TrkSSLHelper::LoadPrivateKeyFile(ssl_ctx, private_key_path))
+			{
+				ErrorStr << "Private key file didn't load: " << private_key_path;
+				delete master;
+				closesocket(server_socket);
+				WSACleanup();
+				delete& ssl_ctx;
+				return false;
+			}
+		}
+		catch (std::exception ex)
+		{
+			ErrorStr << "Error in SSL initialization: " << ex.what();
+			delete master;
+			closesocket(server_socket);
+			WSACleanup();
+			delete &(ssl_ctx);
+			return false;
+		}
+	}
+
 	return true;
 }
 
 bool TrkWindowsServer::Run(TrkString& ErrorStr)
 {
+	bool ssl_active = opt_result->ssl_files_path != "";
 	fd_set readSet = *master;
 	struct timeval timeout;
 	timeout.tv_sec = 1;
@@ -127,7 +170,19 @@ bool TrkWindowsServer::Run(TrkString& ErrorStr)
 					inet_ntop(AF_INET, &clientAddr.sin_addr, ip, INET_ADDRSTRLEN);
 					TrkString ss;
 					ss << ip << ":" << htons(clientAddr.sin_port);
-					TrkClientInfo* client = new TrkClientInfo(&clientAddr, clientSocket, ss);
+
+					TrkSSL* ssl = nullptr;
+					if (ssl_active)
+					{
+						ssl = &TrkSSLHelper::CreateClient(ssl_ctx, clientSocket);
+						if (TrkSSLHelper::AcceptClient(ssl) <= 0)
+						{
+							ErrorStr = "Client SSL handshake error.";
+							continue;
+						}
+					}
+
+					TrkClientInfo* client = new TrkClientInfo(&clientAddr, clientSocket, ssl, ss);
 					LOG_OUT("Connection established: " << ss);
 					AppendToListUnique(client);
 					std::thread(&TrkServer::HandleConnection, this, client).detach();
@@ -152,6 +207,7 @@ bool TrkWindowsServer::Cleanup(TrkString& ErrorStr)
 	delete master;
 	delete list;
 	WSACleanup();
+	delete& ssl_ctx;
 
 	return true;
 }

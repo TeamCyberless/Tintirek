@@ -47,6 +47,7 @@ const TrkCliOptionFlag trk_cli_options[] =
 
 		TrkCliOptionFlag('p', TrkString("Sets server running port")),
 		TrkCliOptionFlag('r', TrkString("Sets server root directory")),
+		TrkCliOptionFlag('s', TrkString("Sets SSL path containing the server SSL credential files"), TrkString("Path"))
 };
 
 
@@ -205,6 +206,14 @@ int main(int argc, char** argv)
 				}
 				break;
 
+			case 's':
+				if (!return_argument_or_null(opt_result.ssl_files_path, 'r', i, argv, argc))
+				{
+					print_help();
+					return EXIT_FAILURE;
+				}
+				break;
+
 			default:
 				std::cerr << "Unknown parameter [-" << opt << "]" << std::endl;
 				print_help();
@@ -239,8 +248,8 @@ int main(int argc, char** argv)
 	TrkWindowsService service;
 	TrkWindowsServer server(opt_result.port_number, &opt_result);
 #elif __APPLE__
-	// @TODO: macOS service solution
-	return;
+	TrkMacOSService service;
+	TrkMacOSServer server(opt_result.port_number, &opt_result);
 #elif __linux__
 	TrkLinuxService service(opt_result.pid_file, opt_result.log_path);
 	TrkLinuxServer server(opt_result.port_number, &opt_result);
@@ -261,6 +270,12 @@ int main(int argc, char** argv)
 #endif
 		LOG_OUT("Port: " << opt_result.port_number)
 		LOG_OUT("Root: " << opt_result.running_root)
+	
+		if (opt_result.ssl_files_path)
+		{
+			LOG_OUT("SSL Files Path: " << opt_result.ssl_files_path)
+		}
+
 		LOG_OUT("==========================")
 
 		while (!service.DoesServiceStopping())
