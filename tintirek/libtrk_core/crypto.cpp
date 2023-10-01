@@ -13,9 +13,6 @@
 #include <openssl/rsa.h>
 #include <openssl/evp.h>
 
-#pragma comment(lib, "libcrypto.lib")
-#pragma comment(lib, "libssl.lib")
-
 
 TrkSSL::TrkSSL(struct ssl_st* Client)
 	: ssl_client(Client)

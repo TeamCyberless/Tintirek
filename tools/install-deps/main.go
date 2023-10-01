@@ -105,7 +105,7 @@ func getopenssl(projectRoot string, openssl string, opensslVer string) {
 		}
 		psScriptPath = filepath.Join(psScriptPath, "win-build-openssl.ps1")
 
-		cmd := exec.Command("powershell.exe", "-File", psScriptPath, "-tempPath", tempDir, "-openssl", openssl)
+		cmd := exec.Command("powershell.exe", "-File", psScriptPath, "-tempPath", tempDir, "-depsPath", depsDir, "-openssl", openssl)
 
 		stdout, err = cmd.StdoutPipe()
 		if err != nil {
@@ -139,16 +139,6 @@ func getopenssl(projectRoot string, openssl string, opensslVer string) {
 
 			return
 		}
-
-		if err := os.Rename(filepath.Join(tempDir, openssl, "libcrypto.lib"), filepath.Join(opensslDir, "libcrypto.lib")); err != nil {
-		    fmt.Println("Error:", err)
-			return
-		}
-
-		if err := os.Rename(filepath.Join(tempDir, openssl, "libssl.lib"), filepath.Join(opensslDir, "libssl.lib")); err != nil {
-			fmt.Println("Error:", err)
-			return
-		}
 	} else {
 		oscompiler := ""
 		if ostype == "linux" {
@@ -163,8 +153,9 @@ func getopenssl(projectRoot string, openssl string, opensslVer string) {
 		perlcmd := exec.Command(
 			"perl", 
 			filepath.Join(tempDir, openssl, "Configure"), 
-			"no-shared", 
-			"--release", 
+			"shared", 
+			fmt.Sprintf("--prefix=%s/openssl", depsDir), 
+			"--debug", 
 			"--api=1.1.0", 
 			"no-ssl2", 
 			"no-ssl3", 
@@ -178,14 +169,18 @@ func getopenssl(projectRoot string, openssl string, opensslVer string) {
 			oscompiler,
 		)
 		makecmd := exec.Command("make")
+		instcmd := exec.Command("make install")
 
 		perlcmd.Dir = filepath.Join(tempDir, openssl)
 		makecmd.Dir = filepath.Join(tempDir, openssl)
+		instcmd.Dir = filepath.Join(tempDir, openssl)
 
 		perlcmd.Stdout = os.Stdout
 		perlcmd.Stderr = os.Stderr
 		makecmd.Stdout = os.Stdout
 		makecmd.Stderr = os.Stderr
+		instcmd.Stdout = os.Stdout
+		instcmd.Stderr = os.Stderr
 
 		if err := perlcmd.Run(); err != nil {
 			fmt.Println("Error:", err)
@@ -197,21 +192,11 @@ func getopenssl(projectRoot string, openssl string, opensslVer string) {
 			return
 		}
 
-		if err := os.Rename(filepath.Join(tempDir, openssl, "libcrypto.a"), filepath.Join(opensslDir, "libcrypto.a")); err != nil {
-		    fmt.Println("Error:", err)
-			return
-		}
-
-		if err := os.Rename(filepath.Join(tempDir, openssl, "libssl.a"), filepath.Join(opensslDir, "libssl.a")); err != nil {
+		if err := instcmd.Run(); err != nil {
 			fmt.Println("Error:", err)
 			return
 		}
 	}
-
-	if err := os.Rename(filepath.Join(tempDir, openssl, "include"), filepath.Join(opensslDir, "include")); err != nil {
-        fmt.Println("Error:", err)
-        return
-    }
 }
 
 func main() {
