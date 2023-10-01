@@ -64,12 +64,6 @@ func getopenssl(projectRoot string, openssl string, opensslVer string) {
 		return
 	}
 
-	opensslDir := filepath.Join(depsDir, "openssl")
-	if err := os.MkdirAll(opensslDir, os.ModePerm); err != nil {
-		fmt.Println("Error:", err)
-		return
-	}
-
 	ostype := runtime.GOOS
 	if ostype == "windows" {
 		testcmd := exec.Command("powershell.exe", "Get-ExecutionPolicy")
@@ -169,7 +163,7 @@ func getopenssl(projectRoot string, openssl string, opensslVer string) {
 			oscompiler,
 		)
 		makecmd := exec.Command("make")
-		instcmd := exec.Command("make install")
+		instcmd := exec.Command("make", "install")
 
 		perlcmd.Dir = filepath.Join(tempDir, openssl)
 		makecmd.Dir = filepath.Join(tempDir, openssl)
