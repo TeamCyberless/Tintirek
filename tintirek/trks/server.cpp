@@ -10,6 +10,7 @@
 #include <vector>
 #include <chrono>
 #include <thread>
+#include <regex>
 
 #ifdef _WIN32
 #include <WinSock2.h>
@@ -38,14 +39,7 @@ void TrkServer::HandleConnection(TrkClientInfo* client_info)
 
 	if (!ReceivePacket(client_info, message, error_str))
 	{
-		client_info->mutex->lock();
-		LOG_ERR("Error with " << client_info->client_connection_info << ": " << error_str);
-#if WIN32
-		closesocket(client_info->client_socket);
-#else
-		close(client_info->client_socket);
-#endif
-		RemoveFromList(client_info);
+		Disconnect(client_info);
 		return;
 	}
 
@@ -63,11 +57,16 @@ void TrkServer::HandleConnection(TrkClientInfo* client_info)
 	std::chrono::milliseconds sleeptime(1000);
 	std::this_thread::sleep_for(sleeptime);
 
+	Disconnect(client_info);
+}
+
+void TrkServer::Disconnect(TrkClientInfo* client_info)
+{
 	client_info->mutex->lock();
 #if WIN32
-		closesocket(client_info->client_socket);
+	closesocket(client_info->client_socket);
 #else
-		close(client_info->client_socket);
+	close(client_info->client_socket);
 #endif
 	LOG_OUT("Connection closed: " << client_info->client_connection_info);
 	RemoveFromList(client_info);
@@ -295,7 +294,7 @@ bool TrkServer::ReceivePacket(TrkClientInfo* client_info, TrkString& message, Tr
 							return true;
 						}
 						readingChunkSize = false;
-						i++;
+						i += 2;
 						lastIndex = i;
 					}
 					else
@@ -310,15 +309,21 @@ bool TrkServer::ReceivePacket(TrkClientInfo* client_info, TrkString& message, Tr
 				
 				if (remainingBytes >= chunkSize) {
 					receivedData << TrkString(buffer.begin() + lastIndex, buffer.begin() + lastIndex + chunkSize);
-					lastIndex += chunkSize;
-					chunkSize = 0;
-					readingChunkSize = true;
 				}
 				else
 				{
-					receivedData << TrkString(buffer.begin() + lastIndex, buffer.end());
-					chunkSize -= remainingBytes;
-					lastIndex = bytesRead;
+					int endOfChunk = chunkSize + lastIndex;
+					receivedData << TrkString(buffer.begin() + lastIndex, buffer.begin() + endOfChunk);
+				}
+
+				i = lastIndex += chunkSize;
+				chunkSize = 0;
+				readingChunkSize = true;
+
+				if (i + 2 < bytesRead)
+				{
+					lastIndex += 3;
+					i += 3;
 				}
 			}
 		}

@@ -199,11 +199,10 @@ bool TrkConnectHelper::ReceivePacket(class TrkSSL* ssl_connection, int client_so
 	{
 		std::chrono::milliseconds sleeptime(100);
 		std::this_thread::sleep_for(sleeptime);
-		TrkString buffer;
 		int bytesRead = Recv(ssl_connection, client_socket, buffer, 1024);
 		if (bytesRead < 0)
 		{
-			error_msg << "Receive failed unexceptedly. Error code: " << TrkSSLHelper::GetError(ssl_connection);
+			error_msg = "Receive failed unexceptedly.";
 			message = "";
 			return false;
 		}
@@ -224,7 +223,7 @@ bool TrkConnectHelper::ReceivePacket(class TrkSSL* ssl_connection, int client_so
 						chunkSize = TrkString::stoi(chunkSizeStr, 16);
 						if (chunkSize == 0)
 						{
-							const TrkString WHITESPACE = "\n\r\t\f\v";
+							TrkString WHITESPACE = "\n\r\t\f\v";
 							size_t index = receivedData.find_first_not_of(WHITESPACE);
 							receivedData = (index == TrkString::npos) ? "" : receivedData.substr(index);
 							index = receivedData.find_last_not_of(WHITESPACE);
@@ -234,7 +233,7 @@ bool TrkConnectHelper::ReceivePacket(class TrkSSL* ssl_connection, int client_so
 							return true;
 						}
 						readingChunkSize = false;
-						i++;
+						i += 2;
 						lastIndex = i;
 					}
 					else
@@ -249,15 +248,21 @@ bool TrkConnectHelper::ReceivePacket(class TrkSSL* ssl_connection, int client_so
 
 				if (remainingBytes >= chunkSize) {
 					receivedData << TrkString(buffer.begin() + lastIndex, buffer.begin() + lastIndex + chunkSize);
-					lastIndex += chunkSize;
-					chunkSize = 0;
-					readingChunkSize = true;
 				}
 				else
 				{
-					receivedData << TrkString(buffer.begin() + lastIndex, buffer.end());
-					chunkSize -= remainingBytes;
-					lastIndex = bytesRead;
+					int endOfChunk = chunkSize + lastIndex;
+					receivedData << TrkString(buffer.begin() + lastIndex, buffer.begin() + endOfChunk);
+				}
+
+				i = lastIndex += chunkSize;
+				chunkSize = 0;
+				readingChunkSize = true;
+
+				if (i + 2 < bytesRead)
+				{
+					lastIndex += 3;
+					i += 3;
 				}
 			}
 		}

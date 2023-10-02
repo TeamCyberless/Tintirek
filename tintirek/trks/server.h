@@ -33,7 +33,7 @@ public:
 			delete next_client;
 		}
 
-		if (client_ssl_socket)
+		if (client_ssl_socket != nullptr)
 		{
 			delete client_ssl_socket;
 		}
@@ -125,6 +125,8 @@ public:
 
 	/*  Handle clients */
 	virtual void HandleConnection(TrkClientInfo* client_info);
+	/*	Disconnects client */
+	virtual void Disconnect(TrkClientInfo* client_info);
 	/*  Handles clients by iteration */
 	virtual bool HandleConnectionMultiple(TrkClientInfo* client_info, TrkString& error_str);
 	/*	Handle commands */
