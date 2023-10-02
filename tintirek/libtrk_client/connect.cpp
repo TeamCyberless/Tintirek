@@ -53,8 +53,6 @@ bool TrkConnectHelper::SendCommand(TrkCliClientOptionResults& opt_result, const 
 		return false;
 	}
 
-	std::cout << message << std::endl;
-
 	size_t firstNewlinePos = message.find("\n");
 	TrkString firstLine = (firstNewlinePos != TrkString::npos) ? message.substr(0, firstNewlinePos) : message;
 
@@ -161,8 +159,7 @@ bool TrkConnectHelper::SendPacket(class TrkSSL* ssl_connection, int client_socke
 		}
 
 		TrkString sendData(message.begin() + totalSent, message.begin() + totalSent + sendSize);
-		int i = Send(ssl_connection, client_socket, sendData, sendData.size());
-		if (i <= 0)
+		if (Send(ssl_connection, client_socket, sendData, sendData.size()) <= 0)
 		{
 #ifdef _WIN32
 			error_code = WSAGetLastError();
@@ -202,11 +199,11 @@ bool TrkConnectHelper::ReceivePacket(class TrkSSL* ssl_connection, int client_so
 	{
 		std::chrono::milliseconds sleeptime(100);
 		std::this_thread::sleep_for(sleeptime);
-		TrkString internal_string;
-		int bytesRead = Recv(ssl_connection, client_socket, internal_string, 1024);
+		TrkString buffer;
+		int bytesRead = TrkSSLHelper::Read(ssl_connection, buffer, 1024);
 		if (bytesRead < 0)
 		{
-			error_msg = "Receive failed unexceptedly.";
+			error_msg << "Receive failed unexceptedly. Error code: " << TrkSSLHelper::GetError(ssl_connection);
 			message = "";
 			return false;
 		}
@@ -214,15 +211,6 @@ bool TrkConnectHelper::ReceivePacket(class TrkSSL* ssl_connection, int client_so
 		{
 			continue;
 		}
-
-		std::string test(buffer);
-		std::regex rpattern("(\r)"), npattern("(\n)");
-		test = std::regex_replace(test, std::regex("(\r)"), "\\r");
-		test = std::regex_replace(test, std::regex("(\n)"), "\\n");
-
-		std::cout << test << std::endl;
-
-		buffer = TrkString(internal_string, internal_string + bytesRead);
 
 		lastIndex = 0;
 		for (int i = 0; i < bytesRead; i++) {
@@ -241,8 +229,7 @@ bool TrkConnectHelper::ReceivePacket(class TrkSSL* ssl_connection, int client_so
 							receivedData = (index == TrkString::npos) ? "" : receivedData.substr(index);
 							index = receivedData.find_last_not_of(WHITESPACE);
 							receivedData = (index == TrkString::npos) ? "" : receivedData.substr(0, index + 1);
-							
-							std::cout << receivedData << std::endl;
+
 							message = receivedData;
 							return true;
 						}
@@ -405,7 +392,7 @@ bool TrkConnectHelper::Connect_Internal(TrkCliClientOptionResults& opt_result, T
 		ssl_context = TrkSSLHelper::CreateClientMethod();
 		ssl_connection = TrkSSLHelper::CreateClient(ssl_context, client_socket);
 
-		if (TrkSSLHelper::ConnectServer(ssl_connection) == -1)
+		if (TrkSSLHelper::ConnectServer(ssl_connection) <= 0)
 		{
 			TrkSSLHelper::PrintErrors();
 			ErrorStr << "SSL Error. Error code: " << TrkSSLHelper::GetError(ssl_connection);
@@ -425,7 +412,7 @@ bool TrkConnectHelper::Disconnect_Internal(TrkSSLCTX* ssl_context, TrkSSL* ssl_c
 #ifdef _WIN32
 	WSACleanup();
 	closesocket(client_socket);
-#elif
+#else
 	close(client_socket);
 #endif
 

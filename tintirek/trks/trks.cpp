@@ -6,12 +6,14 @@
 
 #include <iostream>
 
-#ifndef WIN32
+#ifdef WIN32
+#include <openssl/applink.c>
+#endif
 
+#ifndef WIN32
 #include <fstream>
 #include <unistd.h>
 #include <fcntl.h>
-
 #endif
 
 #include <filesystem>
@@ -20,7 +22,6 @@
 #include <signal.h>
 #include <cmath>
 #include <chrono>
-#include <openssl/applink.c>
 
 #include "trk_types.h"
 #include "trk_cmdline.h"

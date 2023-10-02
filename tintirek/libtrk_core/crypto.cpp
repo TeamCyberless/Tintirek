@@ -109,8 +109,13 @@ void TrkSSLHelper::PrintErrors()
 TrkSSLCTX* TrkSSLHelper::CreateServerMethod()
 {
 	SSL_CTX* ssl_ctx = SSL_CTX_new(TLS_server_method());
-	SSL_CTX_set_min_proto_version(ssl_ctx, TLS1_VERSION);
-	SSL_CTX_set_max_proto_version(ssl_ctx, TLS_MAX_VERSION);
+	
+	if (!ssl_ctx)
+	{
+		PrintErrors();
+		return nullptr;
+	}
+
 	return new TrkSSLCTX(ssl_ctx, false);
 }
 
@@ -159,10 +164,8 @@ int TrkSSLHelper::Read(TrkSSL* Client, TrkString& Buf, int Length)
 	{
 		Buf = TrkString(internal_strings, internal_strings + bytes_read);
 	}
-	else
+	else if (bytes_read <= 0)
 	{
-		std::cout << GetError(Client) << std::endl;
-		PrintErrors();
 		Buf = TrkString("");
 	}
 
@@ -171,7 +174,12 @@ int TrkSSLHelper::Read(TrkSSL* Client, TrkString& Buf, int Length)
 
 int TrkSSLHelper::GetError(TrkSSL* Client)
 {
-	return SSL_get_error(Client->GetClient(), -1);
+	int val = SSL_get_error(Client->GetClient(), -1);
+	if (val == -1)
+	{
+		val = ERR_get_error();
+	}
+	return val;
 }
 
 bool TrkSSLHelper::LoadSSLFiles(TrkSSLCTX* SSLCTX, TrkString Path)
@@ -179,18 +187,17 @@ bool TrkSSLHelper::LoadSSLFiles(TrkSSLCTX* SSLCTX, TrkString Path)
 	TrkString certificate_path(std::filesystem::path(std::filesystem::canonical((const char*)Path) / "publickey.pem").string().c_str());
 	TrkString private_key_path(std::filesystem::path(std::filesystem::canonical((const char*)Path) / "privatekey.pem").string().c_str());
 
-	int returnable = SSL_CTX_use_certificate_file(SSLCTX->GetContext(), certificate_path, SSL_FILETYPE_PEM);
-
-	if (returnable > 0)
+	if (SSL_CTX_use_certificate_file(SSLCTX->GetContext(), certificate_path, SSL_FILETYPE_PEM) <= 0)
 	{
-		returnable = SSL_CTX_use_PrivateKey_file(SSLCTX->GetContext(), private_key_path, SSL_FILETYPE_PEM) > 0;
-
-		if (returnable > 0)
-		{
-			return true;
-		}
+		PrintErrors();
+		return false;
 	}
 
-	PrintErrors();
-	return false;
+	if (SSL_CTX_use_PrivateKey_file(SSLCTX->GetContext(), private_key_path, SSL_FILETYPE_PEM) <= 0)
+	{
+		PrintErrors();
+		return false;
+	}
+
+	return true;
 }

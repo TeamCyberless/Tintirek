@@ -11,10 +11,10 @@
 #include <climits>
 #include <string>
 #include <thread>
-#include <openssl/applink.c>
 
 #ifdef _WIN32
 #include <ws2tcpip.h>
+#include <openssl/applink.c>
 #endif
 
 #include "trk_types.h"

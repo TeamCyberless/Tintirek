@@ -60,6 +60,9 @@ void TrkServer::HandleConnection(TrkClientInfo* client_info)
 		LOG_ERR("Error with " << client_info->client_connection_info << ": " << os.str());
 	}
 
+	std::chrono::milliseconds sleeptime(1000);
+	std::this_thread::sleep_for(sleeptime);
+
 	client_info->mutex->lock();
 #if WIN32
 		closesocket(client_info->client_socket);
@@ -209,7 +212,7 @@ bool TrkServer::SendPacket(TrkClientInfo* client_info, const TrkString message, 
 		char hexString[9];
 		std::sprintf(hexString, "%X", sendSize);
 		chunkHeader << hexString << "\r\n";
-		if (Send(client_info, chunkHeader, chunkHeader.size(), 0) <= 0)
+		if (Send(client_info, chunkHeader, chunkHeader.size(), client_info->client_ssl_socket != nullptr) <= 0)
 		{
 #ifdef _WIN32
 			error_code = WSAGetLastError();

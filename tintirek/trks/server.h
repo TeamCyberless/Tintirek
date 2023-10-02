@@ -155,8 +155,6 @@ protected:
 	/*	Main socket set */
 #if WIN32
 	struct fd_set* master;
-#else
-	typedef fd_set* master;
 #endif
 
 	/*  List of clients */
@@ -164,6 +162,9 @@ protected:
 
 	/*	Data of server program */
 	TrkCliServerOptionResult* opt_result = nullptr;
+
+	/* SSL object */
+	TrkSSLCTX* ssl_ctx;
 
 public:
 	/*	If element is unique, addd new element to the end */
@@ -238,9 +239,6 @@ public:
 	virtual bool Init(TrkString& ErrorStr) override;
 	virtual bool Run(TrkString& ErrorStr) override;
 	virtual bool Cleanup(TrkString& ErrorStr) override;
-
-private:
-	TrkSSLCTX* ssl_ctx;
 };
 
 #elif __APPLE__
