@@ -13,6 +13,29 @@ set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 
 #############################################
 #											#
+#			INSTALL DEPENDENCIES			#
+#											#
+#############################################
+
+
+# Set dependency installer file
+if(WIN32)
+	set(DEP_INSTALLER "${CMAKE_CURRENT_LIST_DIR}/GetDependencies.bat")
+elseif(APPLE)
+	set(DEP_INSTALLER "${CMAKE_CURRENT_LIST_DIR}/GetDependencies.command")
+else()
+	set(DEP_INSTALLER "${CMAKE_CURRENT_LIST_DIR}/GetDependencies.sh")
+endif()
+
+# Execute dependency installer
+execute_process(
+	COMMAND ${DEP_INSTALLER}
+	WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
+)
+
+
+#############################################
+#											#
 #				PROJECT DEFAULTS			#
 #											#
 #############################################
