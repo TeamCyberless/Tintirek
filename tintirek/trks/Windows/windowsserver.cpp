@@ -157,7 +157,7 @@ bool TrkWindowsServer::Run(TrkString& ErrorStr)
 						continue;
 					}
 
-					/*unsigned char clientResponse[5];
+					unsigned char clientResponse[5];
 					int bytesRead = recv(clientSocket, reinterpret_cast<char*>(clientResponse), sizeof(clientResponse), 0);
 
 					if (bytesRead == sizeof(clientResponse) &&
@@ -189,7 +189,7 @@ bool TrkWindowsServer::Run(TrkString& ErrorStr)
 						ErrorStr << "Invalid custom packet received, terminating connection: " << ss;
 						closesocket(clientSocket);
 						continue;
-					}*/
+					}
 
 					TrkSSL* ssl = nullptr;
 					if (ssl_active)

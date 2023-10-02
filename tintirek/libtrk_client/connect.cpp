@@ -31,8 +31,8 @@
 bool TrkConnectHelper::SendCommand(TrkCliClientOptionResults& opt_result, const TrkString Command, TrkString& ErrorStr, TrkString& Returned)
 {
 	int client_socket;
-	TrkSSLCTX* ssl_context;
-	TrkSSL* ssl_connection;
+	TrkSSLCTX* ssl_context = nullptr;
+	TrkSSL* ssl_connection = nullptr;
 	if (!Connect_Internal(opt_result, ssl_context, ssl_connection, client_socket, ErrorStr))
 	{
 		return false;
@@ -200,7 +200,7 @@ bool TrkConnectHelper::ReceivePacket(class TrkSSL* ssl_connection, int client_so
 		std::chrono::milliseconds sleeptime(100);
 		std::this_thread::sleep_for(sleeptime);
 		TrkString buffer;
-		int bytesRead = TrkSSLHelper::Read(ssl_connection, buffer, 1024);
+		int bytesRead = Recv(ssl_connection, client_socket, buffer, 1024);
 		if (bytesRead < 0)
 		{
 			error_msg << "Receive failed unexceptedly. Error code: " << TrkSSLHelper::GetError(ssl_connection);
@@ -354,7 +354,7 @@ bool TrkConnectHelper::Connect_Internal(TrkCliClientOptionResults& opt_result, T
 
 	freeaddrinfo(result);
 
-	/*unsigned char response[5] = {0xEA, 0xEB, 0x00, 0xCC, (opt_result.trust ? 0x01 : 0x00)};
+	unsigned char response[5] = {0xEA, 0xEB, 0x00, 0xCC, (opt_result.trust ? 0x01 : 0x00)};
 	send(client_socket, reinterpret_cast<char*>(response), sizeof(response), 0);
 
 	unsigned char serverResponse[5];
@@ -384,7 +384,7 @@ bool TrkConnectHelper::Connect_Internal(TrkCliClientOptionResults& opt_result, T
 		close(client_socket);
 #endif
 		return false;
-	}*/
+	}
 
 	if (opt_result.trust)
 	{
@@ -424,7 +424,7 @@ bool TrkConnectHelper::Disconnect_Internal(TrkSSLCTX* ssl_context, TrkSSL* ssl_c
 
 int TrkConnectHelper::Send(TrkSSL* ssl_connection, int client_socket, TrkString buf, int len)
 {
-	if (ssl_connection->GetClient() != nullptr)
+	if (ssl_connection != nullptr)
 	{
 		return TrkSSLHelper::Write(ssl_connection, buf, len);
 	}
@@ -436,7 +436,7 @@ int TrkConnectHelper::Send(TrkSSL* ssl_connection, int client_socket, TrkString 
 
 int TrkConnectHelper::Recv(TrkSSL* ssl_connection, int client_socket, TrkString& buf, int len)
 {
-	if (ssl_connection->GetClient() != nullptr)
+	if (ssl_connection != nullptr)
 	{
 		return TrkSSLHelper::Read(ssl_connection, buf, len);
 	}
@@ -444,7 +444,16 @@ int TrkConnectHelper::Recv(TrkSSL* ssl_connection, int client_socket, TrkString&
 	{
 		char internal_strings[1024];
 		int bytes_read = recv(client_socket, internal_strings, len, 0);
-		buf = TrkString(internal_strings, internal_strings + bytes_read);
+		
+		if (bytes_read > 0)
+		{
+			buf = TrkString(internal_strings, internal_strings + bytes_read);
+		}
+		else
+		{
+			buf = TrkString("");
+		}
+
 		return bytes_read;
 	}
 }

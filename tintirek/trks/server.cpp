@@ -349,7 +349,16 @@ int TrkServer::Recv(TrkClientInfo* clientInfo, TrkString& buf, int len, bool use
 	{
 		char internal_strings[1024];
 		int bytes_read = recv(clientInfo->client_socket, internal_strings, len, 0);
-		buf = TrkString(internal_strings, internal_strings + bytes_read);
+
+		if (bytes_read > 0)
+		{
+			buf = TrkString(internal_strings, internal_strings + bytes_read);
+		}
+		else
+		{
+			buf = TrkString("");
+		}
+
 		return bytes_read;
 	}
 }

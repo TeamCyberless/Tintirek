@@ -69,7 +69,12 @@ TrkSSL::~TrkSSL()
 
 struct ssl_st* TrkSSL::GetClient() const
 {
-	return ssl_client;
+	if (ssl_client != nullptr)
+	{
+		return ssl_client;
+	}
+
+	return nullptr;
 }
 
 TrkSSLCTX::TrkSSLCTX(ssl_ctx_st* Context, bool Client)
