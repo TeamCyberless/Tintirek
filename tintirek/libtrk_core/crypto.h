@@ -18,6 +18,7 @@ public:
 	TrkSSL(struct ssl_st* Client = nullptr);
 	~TrkSSL();
 
+	/* Returns SSL client reference */
 	struct ssl_st* GetClient() const;
 
 private:
@@ -31,7 +32,9 @@ public:
 	TrkSSLCTX(struct ssl_ctx_st* Context = nullptr, bool Client = false);
 	~TrkSSLCTX();
 	
+	/* Returns SSL context reference */
 	struct ssl_ctx_st* GetContext() const;
+	/* Returns true if this context is created from the client method, false otherwise */
 	bool IsClient() const;
 
 private:
@@ -43,16 +46,27 @@ private:
 class TrkSSLHelper
 {
 public:
+	/* Initialize the SSL engine. This function must be called once before using any SSL functions */
 	static void InitSSL();
+	/* Print error messages to the standard error stream. Use this function primarily in Debug mode */
 	static void PrintErrors();
+	/* Create an SSL context using server methods */
 	static TrkSSLCTX* CreateServerMethod();
+	/* Create an SSL context using client methods */
 	static TrkSSLCTX* CreateClientMethod();
+	/* Establish an SSL connection reference for a client */
 	static TrkSSL* CreateClient(TrkSSLCTX* Context, int client_socket);
+	/* Accept an incoming client connection */
 	static int AcceptClient(TrkSSL* Client);
+	/* Connect to an SSL-enabled server */
 	static int ConnectServer(TrkSSL* Client);
+	/* Send data to an SSL-enabled server */
 	static int Write(TrkSSL* Client, TrkString Buf, int Length);
+	/* Receive data from an SSL-enabled server */
 	static int Read(TrkSSL* Client, TrkString& Buf, int Length);
+	/* Get the error code that occurred during SSL communication */
 	static int GetError(TrkSSL* Client);
+	/* Load private and public keys from the specified path */
 	static bool LoadSSLFiles(TrkSSLCTX* SSLCTX, TrkString Path);
 };
 
