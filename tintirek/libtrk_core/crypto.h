@@ -28,13 +28,15 @@ private:
 class TrkSSLCTX
 {
 public:
-	TrkSSLCTX(struct ssl_ctx_st* Context = nullptr);
+	TrkSSLCTX(struct ssl_ctx_st* Context = nullptr, bool Client = false);
 	~TrkSSLCTX();
 	
 	struct ssl_ctx_st* GetContext() const;
+	bool IsClient() const;
 
 private:
 	struct ssl_ctx_st* ssl_context;
+	bool isclient;
 };
 
 /* Helper class for Cryptography (uses OpenSSL) */
@@ -42,14 +44,16 @@ class TrkSSLHelper
 {
 public:
 	static void InitSSL();
-	static TrkSSLCTX CreateServerMethod();
-	static TrkSSL CreateClient(TrkSSLCTX Context, int client_socket);
+	static void PrintErrors();
+	static TrkSSLCTX* CreateServerMethod();
+	static TrkSSLCTX* CreateClientMethod();
+	static TrkSSL* CreateClient(TrkSSLCTX* Context, int client_socket);
 	static int AcceptClient(TrkSSL* Client);
+	static int ConnectServer(TrkSSL* Client);
 	static int Write(TrkSSL* Client, TrkString Buf, int Length);
 	static int Read(TrkSSL* Client, TrkString& Buf, int Length);
-	static bool LoadCertificateFile(TrkSSLCTX SSLCTX, TrkString CertificatePath);
-	static bool LoadPrivateKeyFile(TrkSSLCTX SSLCTX, TrkString PrivateKeyPath);
-	static bool CreateNewCertificate(TrkString Path);
+	static int GetError(TrkSSL* Client);
+	static bool LoadSSLFiles(TrkSSLCTX* SSLCTX, TrkString Path);
 };
 
 

@@ -240,7 +240,7 @@ public:
 	virtual bool Cleanup(TrkString& ErrorStr) override;
 
 private:
-	TrkSSLCTX ssl_ctx;
+	TrkSSLCTX* ssl_ctx;
 };
 
 #elif __APPLE__

@@ -26,7 +26,7 @@ bool TrkCliInfoCommand::CallCommand_Implementation(const TrkCliOption* Options, 
 		if (!TrkConnectHelper::SendCommand(*ClientResults, "GetInformation", errmsg, returned))
 		{
 			std::cerr << errmsg << std::endl;
-			return EXIT_FAILURE;
+			return true;
 		}
 		else
 		{
@@ -77,11 +77,9 @@ bool TrkCliInfoCommand::CallCommand_Implementation(const TrkCliOption* Options, 
 			"Server Uptime: " << ClientResults->server_uptime << std::endl <<
 			"Server Version: " << ClientResults->server_version << std::endl <<
 			"Server Encryption: " << (ClientResults->trust ? "Enabled" : "Disabled") << std::endl;
-
-		return true;
 	}
 
-	return false;
+	return true;
 }
 
 bool TrkCliInfoCommand::CheckCommandFlags_Implementation(const char Flag)

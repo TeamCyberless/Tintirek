@@ -10,6 +10,7 @@
 
 
 #include "trk_string.h"
+#include "crypto.h"
 
 
  /* Connection Helper Class */
@@ -23,13 +24,18 @@ public:
 
 protected:
 	/* Sends packet to client as chunked data */
-	static bool SendPacket(int client_socket, const TrkString message, int& error_code);
+	static bool SendPacket(TrkSSL* ssl_connection, int client_socket, const TrkString message, int& error_code);
 	/* Recovers packet from all chunk data from client */
-	static bool ReceivePacket(int client_socket, TrkString& message, TrkString& error_msg);
+	static bool ReceivePacket(TrkSSL* ssl_connection, int client_socket, TrkString& message, TrkString& error_msg);
 	/* Internal code for connecting to the server */
-	static bool Connect_Internal(class TrkCliClientOptionResults& opt_result, int& client_socket, TrkString& ErrorStr);
+	static bool Connect_Internal(class TrkCliClientOptionResults& opt_result, TrkSSLCTX*& ssl_context, TrkSSL*& ssl_connection, int& client_socket, TrkString& ErrorStr);
 	/* Internal code for disconnecting from the server */
-	static bool Disconnect_Internal(int client_socket, TrkString& ErrorStr);
+	static bool Disconnect_Internal(TrkSSLCTX* ssl_context, TrkSSL* ssl_connection, int client_socket, TrkString& ErrorStr);
+	
+	/* Send implementation with SSL and non-SSL */
+	static int Send(TrkSSL* ssl_connection, int client_socket, TrkString buf, int len);
+	/* Recv implementation with SSL and non-SSL */
+	static int Recv(TrkSSL* ssl_connection, int client_socket, TrkString& buf, int len);
 };
 
 

@@ -69,6 +69,17 @@ const char* TrkString::end() const
 	return data + length;
 }
 
+bool TrkString::startswith(const TrkString& prefix) const
+{
+	size_t prefixLength = prefix.size();
+	if (length < prefixLength)
+	{
+		return false;
+	}
+
+	return (std::strncmp(data, prefix.data, prefixLength) == 0);
+}
+
 size_t TrkString::size() const
 {
 	return length;

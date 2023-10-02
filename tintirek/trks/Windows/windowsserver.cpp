@@ -12,7 +12,6 @@
 #include <string>
 #include <sstream>
 #include <thread>
-#include <filesystem>
 
 #pragma comment(lib, "ws2_32.lib")
 
@@ -97,26 +96,14 @@ bool TrkWindowsServer::Init(TrkString& ErrorStr)
 		{
 			TrkSSLHelper::InitSSL();
 			ssl_ctx = TrkSSLHelper::CreateServerMethod();
-			TrkString certificate_path(std::filesystem::path(std::filesystem::canonical((const char*)opt_result->ssl_files_path) / "certificate.pem").string().c_str());
-			TrkString private_key_path(std::filesystem::path(std::filesystem::canonical((const char*)opt_result->ssl_files_path) / "privatekey.pem").string().c_str());
 
-			if (TrkSSLHelper::LoadCertificateFile(ssl_ctx, certificate_path))
+			if (!TrkSSLHelper::LoadSSLFiles(ssl_ctx, opt_result->ssl_files_path))
 			{
-				ErrorStr << "Certificate file didn't load: " << certificate_path;
+				ErrorStr << "Certificate files didn't load: " << opt_result->ssl_files_path;
 				delete master;
 				closesocket(server_socket);
 				WSACleanup();
-				delete& ssl_ctx;
-				return false;
-			}
-
-			if (TrkSSLHelper::LoadPrivateKeyFile(ssl_ctx, private_key_path))
-			{
-				ErrorStr << "Private key file didn't load: " << private_key_path;
-				delete master;
-				closesocket(server_socket);
-				WSACleanup();
-				delete& ssl_ctx;
+				delete ssl_ctx;
 				return false;
 			}
 		}
@@ -126,7 +113,7 @@ bool TrkWindowsServer::Init(TrkString& ErrorStr)
 			delete master;
 			closesocket(server_socket);
 			WSACleanup();
-			delete &(ssl_ctx);
+			delete ssl_ctx;
 			return false;
 		}
 	}
@@ -160,24 +147,62 @@ bool TrkWindowsServer::Run(TrkString& ErrorStr)
 					sockaddr_in clientAddr;
 					socklen_t clientLen = sizeof(clientAddr);
 					SOCKET clientSocket = accept(server_socket, (struct sockaddr*)&clientAddr, &clientLen);
-					if (clientSocket == INVALID_SOCKET)
-					{
-						ErrorStr = "Client accept error.";
-						continue;
-					}
 
 					char ip[INET_ADDRSTRLEN];
 					inet_ntop(AF_INET, &clientAddr.sin_addr, ip, INET_ADDRSTRLEN);
 					TrkString ss;
 					ss << ip << ":" << htons(clientAddr.sin_port);
 
+					if (clientSocket == INVALID_SOCKET)
+					{
+						ErrorStr << "Client accept error: " << ss;
+						continue;
+					}
+
+					/*unsigned char clientResponse[5];
+					int bytesRead = recv(clientSocket, reinterpret_cast<char*>(clientResponse), sizeof(clientResponse), 0);
+
+					if (bytesRead == sizeof(clientResponse) &&
+						clientResponse[0] == 0xEA &&			// Special character 1 for Tintirek's TLS detection
+						clientResponse[1] == 0xEB &&			// Special character 2 for Tintirek's TLS detection
+						clientResponse[2] == 0x00 &&			// Empty character
+						clientResponse[3] == 0xCC				// CD: Server, CC: Client
+						)
+					{
+						if (ssl_active != (clientResponse[4] == 0x01)) // 1: tls mode active, 0: tls mode deactive
+						{
+							ErrorStr << "TLS mode mismatch, terminating connection: " << ss;
+
+							unsigned char response[5] = { 0xEA, 0xEB, 0x00, 0xCD, (ssl_active ? 0x01 : 0x00) };
+							send(clientSocket, reinterpret_cast<char*>(response), sizeof(response), 0);
+							closesocket(clientSocket);
+							continue;
+						}
+						else
+						{
+							LOG_OUT("Client-Server TLS check-up completed: " << ss);
+
+							unsigned char response[5] = { 0xEA, 0xEB, 0x00, 0xCD, (ssl_active ? 0x01 : 0x00) };
+							send(clientSocket, reinterpret_cast<char*>(response), sizeof(response), 0);
+						}
+					}
+					else
+					{
+						ErrorStr << "Invalid custom packet received, terminating connection: " << ss;
+						closesocket(clientSocket);
+						continue;
+					}*/
+
 					TrkSSL* ssl = nullptr;
 					if (ssl_active)
 					{
-						ssl = &TrkSSLHelper::CreateClient(ssl_ctx, clientSocket);
+						ssl = TrkSSLHelper::CreateClient(ssl_ctx, clientSocket);
 						if (TrkSSLHelper::AcceptClient(ssl) <= 0)
 						{
-							ErrorStr = "Client SSL handshake error.";
+							TrkSSLHelper::PrintErrors();
+							ErrorStr << "SSL error (errno: " << TrkSSLHelper::GetError(ssl) << ")";
+							delete ssl;
+							closesocket(clientSocket);
 							continue;
 						}
 					}

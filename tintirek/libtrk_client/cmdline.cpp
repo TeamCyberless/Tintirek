@@ -27,7 +27,7 @@ bool TrkCliCommand::CheckCommandFlags(const char Flag)
 
 TrkString TrkCliOptionFlag::Display(TrkCliOption* opt)
 {
-	TrkString str;
+	TrkString str("");
 
 	for (const auto* flag : *opt->head_flag)
 	{

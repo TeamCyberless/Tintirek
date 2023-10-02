@@ -150,9 +150,6 @@ func getopenssl(projectRoot string, openssl string, opensslVer string) {
 			"shared", 
 			fmt.Sprintf("--prefix=%s/openssl", depsDir), 
 			"--debug", 
-			"--api=1.1.0", 
-			"no-ssl2", 
-			"no-ssl3", 
 			"no-md2", 
 			"no-rc4", 
 			"no-idea", 
@@ -210,7 +207,7 @@ func main() {
 	}
 
 	SQLITE_VERSION := tools.GetEnv("SQLITE_VERSION", "3.43.0")
-	OPENSSL_VERSION := tools.GetEnv("OPENSSL_VERSION", "1.1.1w")
+	OPENSSL_VERSION := tools.GetEnv("OPENSSL_VERSION", "1.1.1i")
 
 	// Used for SQLite download URL
 	SQLITE_VERSION_RELEASE_YEAR := tools.GetEnv("SQLITE_VERSION_RELEASE_YEAR", "2023")

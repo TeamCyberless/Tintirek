@@ -74,19 +74,6 @@ bool TrkConfig::LoadConfig(TrkCliOptionResults* Results)
                     {
                         clientResults->server_url = value;
                     }
-                    else if (key == TRK_CONFIG_CLIENT_TRUST)
-                    {
-                        value.ToLower();
-                        
-                        if (value == "true" || value == "yes" || value == "1")
-                        {
-                            clientResults->trust = true;
-                        }
-                        else if (value == "false" || value == "no" || value == "0")
-                        {
-                            clientResults->trust = false;
-                        }
-                    }
                     else if (key == TRK_CONFIG_CLIENT_USER)
                     {
                         clientResults->username = value;

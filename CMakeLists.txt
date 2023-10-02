@@ -111,3 +111,11 @@ target_link_libraries(trk_client PRIVATE
 	OpenSSL::SSL
 	OpenSSL::Crypto
 )
+target_link_libraries(trks PRIVATE
+	OpenSSL::SSL
+	OpenSSL::Crypto
+)
+target_link_libraries(trk PRIVATE
+	OpenSSL::SSL
+	OpenSSL::Crypto
+)

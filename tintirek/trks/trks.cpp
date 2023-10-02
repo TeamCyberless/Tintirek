@@ -20,6 +20,7 @@
 #include <signal.h>
 #include <cmath>
 #include <chrono>
+#include <openssl/applink.c>
 
 #include "trk_types.h"
 #include "trk_cmdline.h"
@@ -67,7 +68,7 @@ void print_help(bool print_legal = false)
 		std::cout << "Tintirek Version Control Software Server Program by TeamCyberless." << std::endl;
 	}
 
-	std::cout << std::endl << "Usage: trk [-d] [-i <pid_file>] [-p <port>] [-r <path>]" << std::endl << std::endl;
+	std::cout << std::endl << "Usage: trk [-d] [-i <pid_file>] [-p <port>] [-r <path>] [-s <ssl files path>]" << std::endl << std::endl;
 
 	std::cout << "Flags:" << std::endl;
 	for (const auto flag : trk_cli_options)
@@ -262,7 +263,7 @@ int main(int argc, char** argv)
 		LOG_OUT("Listening server at " << opt_result.port_number << " port")
 		LOG_OUT("")
 		LOG_OUT("========== INFO ==========")
-		LOG_OUT("Start Time: " << opt_result.start_timestamp)
+		LOG_OUT("Start Time: " << GetTimestamp("%Y/%m/%d %H:%M:%S %z"))
 #ifndef WIN32
 		LOG_OUT("Daemon: " << (opt_result.daemon ? "Enabled" : "Disabled"))
 		LOG_OUT("PID File: " << opt_result.pid_file)
@@ -271,7 +272,7 @@ int main(int argc, char** argv)
 		LOG_OUT("Port: " << opt_result.port_number)
 		LOG_OUT("Root: " << opt_result.running_root)
 	
-		if (opt_result.ssl_files_path)
+		if (opt_result.ssl_files_path != "")
 		{
 			LOG_OUT("SSL Files Path: " << opt_result.ssl_files_path)
 		}
@@ -302,7 +303,7 @@ int main(int argc, char** argv)
 	}
 	else
 	{
-		LOG_ERR("Failed to start daemon.")
+		LOG_ERR("Failed to start daemon: " << ErrorStr)
 		return EXIT_FAILURE;
 	}
 

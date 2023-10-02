@@ -24,6 +24,6 @@ if (-Not (Get-Command -Name "nasm" -ErrorAction SilentlyContinue)) {
 }
 
 Set-Location $tempPath/$openssl
-perl ./Configure shared --prefix=$depsPath/openssl --debug --api=1.1.0 no-ssl2 no-ssl3 no-md2 no-rc4 no-idea no-camellia no-ec no-engine no-tests VC-WIN64A
+perl ./Configure shared --prefix=$depsPath/openssl --debug no-md2 no-rc4 no-idea no-camellia no-ec no-engine no-tests VC-WIN64A
 nmake
 nmake install

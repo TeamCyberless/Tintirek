@@ -1,4 +1,4 @@
-﻿{
+{
   "version": 3,
   "configurePresets": [
     {
@@ -116,6 +116,14 @@
           "sourceDir": "$env{HOME}/.vs/$ms{projectDirName}"
         }
       }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "buildPresets",
+      "displayName": "Custom build preset",
+      "description": "Custom build preset description",
+      "configurePreset": "x64-debug"
     }
   ]
 }

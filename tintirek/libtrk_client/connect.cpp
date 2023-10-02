@@ -8,6 +8,7 @@
 #include <iostream>
 #include <chrono>
 #include <thread>
+#include <regex>
 
 #ifdef _WIN32
 #include <WinSock2.h>
@@ -30,48 +31,36 @@
 bool TrkConnectHelper::SendCommand(TrkCliClientOptionResults& opt_result, const TrkString Command, TrkString& ErrorStr, TrkString& Returned)
 {
 	int client_socket;
-	if (!Connect_Internal(opt_result, client_socket, ErrorStr))
+	TrkSSLCTX* ssl_context;
+	TrkSSL* ssl_connection;
+	if (!Connect_Internal(opt_result, ssl_context, ssl_connection, client_socket, ErrorStr))
 	{
 		return false;
 	}
 
 	int errcode;
-	if (!SendPacket(client_socket, Command, errcode))
+	if (!SendPacket(ssl_connection, client_socket, Command, errcode))
 	{
-		TrkString str;
-		str << "Send Failed! (errno: " << errcode << ")";
-#ifdef _WIN32
-		WSACleanup();
-#endif
-		ErrorStr = str;
+		Disconnect_Internal(ssl_context, ssl_connection, client_socket, ErrorStr);
+		ErrorStr << "Send Failed! (errno: " << errcode << ")";
 		return false;
 	}
 
 	TrkString message;
-	if (!ReceivePacket(client_socket, message, ErrorStr))
+	if (!ReceivePacket(ssl_connection, client_socket, message, ErrorStr))
 	{
-#if WIN32
-		closesocket(client_socket);
-#else
-		close(client_socket);
-#endif
+		Disconnect_Internal(ssl_context, ssl_connection, client_socket, ErrorStr);
 		return false;
 	}
+
+	std::cout << message << std::endl;
 
 	size_t firstNewlinePos = message.find("\n");
 	TrkString firstLine = (firstNewlinePos != TrkString::npos) ? message.substr(0, firstNewlinePos) : message;
 
 	if (firstLine == "OK")
 	{
-		if (!Disconnect_Internal(client_socket, ErrorStr))
-		{
-#if WIN32
-			closesocket(client_socket);
-#else
-			close(client_socket);
-#endif
-			return false;
-		}
+		Disconnect_Internal(ssl_context, ssl_connection, client_socket, ErrorStr);
 
 		if (firstNewlinePos != TrkString::npos)
 		{
@@ -96,7 +85,9 @@ bool TrkConnectHelper::SendCommand(TrkCliClientOptionResults& opt_result, const 
 bool TrkConnectHelper::SendCommandMultiple(class TrkCliClientOptionResults& opt_result, class TrkCommandQueue* Commands, TrkString& ErrorStr, TrkString& Returned)
 {
 	int client_socket;
-	if (!Connect_Internal(opt_result, client_socket, ErrorStr))
+	TrkSSLCTX* ssl_context;
+	TrkSSL* ssl_connection;
+	if (!Connect_Internal(opt_result, ssl_context, ssl_connection, client_socket, ErrorStr))
 	{
 		return false;
 	}
@@ -106,25 +97,17 @@ bool TrkConnectHelper::SendCommandMultiple(class TrkCliClientOptionResults& opt_
 		const char* command = Commands->Peek();
 
 		int errcode;
-		if (!SendPacket(client_socket, command, errcode))
+		if (!SendPacket(ssl_connection, client_socket, command, errcode))
 		{
-			TrkString str;
-			str << "Send Failed! (errno: " << errcode << ")";
-#ifdef _WIN32
-			WSACleanup();
-#endif
-			ErrorStr = str;
+			Disconnect_Internal(ssl_context, ssl_connection, client_socket, ErrorStr);
+			ErrorStr << "Send Failed! (errno: " << errcode << ")";
 			return false;
 		}
 
 		TrkString message;
-		if (!ReceivePacket(client_socket, message, ErrorStr))
+		if (!ReceivePacket(ssl_connection, client_socket, message, ErrorStr))
 		{
-#if WIN32
-			closesocket(client_socket);
-#else
-			close(client_socket);
-#endif
+			Disconnect_Internal(ssl_context, ssl_connection, client_socket, ErrorStr);
 			return false;
 		}
 
@@ -148,20 +131,12 @@ bool TrkConnectHelper::SendCommandMultiple(class TrkCliClientOptionResults& opt_
 		Commands->Dequeue();
 	}
 
-	if (!Disconnect_Internal(client_socket, ErrorStr))
-	{
-#if WIN32
-		closesocket(client_socket);
-#else
-		close(client_socket);
-#endif
-		return false;
-	}
+	Disconnect_Internal(ssl_context, ssl_connection, client_socket, ErrorStr);
 
 	return true;
 }
 
-bool TrkConnectHelper::SendPacket(int client_socket, const TrkString message, int& error_code)
+bool TrkConnectHelper::SendPacket(class TrkSSL* ssl_connection, int client_socket, const TrkString message, int& error_code)
 {
 	int totalSent = 0;
 	int chunkSize = 1024;
@@ -174,8 +149,10 @@ bool TrkConnectHelper::SendPacket(int client_socket, const TrkString message, in
 		int sendSize = std::min<int>(chunkSize, remaining);
 
 		TrkString chunkHeader;
-		chunkHeader << sendSize << "\r\n";
-		if (send(client_socket, chunkHeader, chunkHeader.size(), 0) <= 0)
+		char hexString[9];
+		std::sprintf(hexString, "%X", sendSize);
+		chunkHeader << hexString << "\r\n";
+		if (Send(ssl_connection, client_socket, chunkHeader, chunkHeader.size()) <= 0)
 		{
 #ifdef _WIN32
 			error_code = WSAGetLastError();
@@ -184,7 +161,7 @@ bool TrkConnectHelper::SendPacket(int client_socket, const TrkString message, in
 		}
 
 		TrkString sendData(message.begin() + totalSent, message.begin() + totalSent + sendSize);
-		int i = send(client_socket, sendData, sendData.size(), 0);
+		int i = Send(ssl_connection, client_socket, sendData, sendData.size());
 		if (i <= 0)
 		{
 #ifdef _WIN32
@@ -193,7 +170,7 @@ bool TrkConnectHelper::SendPacket(int client_socket, const TrkString message, in
 			return false;
 		}
 
-		if (send(client_socket, "\r\n", 2, 0) <= 0)
+		if (Send(ssl_connection, client_socket, "\r\n", 2) <= 0)
 		{
 #ifdef _WIN32
 			error_code = WSAGetLastError();
@@ -204,7 +181,7 @@ bool TrkConnectHelper::SendPacket(int client_socket, const TrkString message, in
 		totalSent += sendSize;
 	}
 
-	if (send(client_socket, "0\r\n\r\n", 5, 0) <= 0)
+	if (Send(ssl_connection, client_socket, "0\r\n\r\n", 5) <= 0)
 	{
 #ifdef _WIN32
 		error_code = WSAGetLastError();
@@ -215,7 +192,7 @@ bool TrkConnectHelper::SendPacket(int client_socket, const TrkString message, in
 	return true;
 }
 
-bool TrkConnectHelper::ReceivePacket(int client_socket, TrkString& message, TrkString& error_msg)
+bool TrkConnectHelper::ReceivePacket(class TrkSSL* ssl_connection, int client_socket, TrkString& message, TrkString& error_msg)
 {
 	TrkString buffer, receivedData;
 	bool readingChunkSize = true;
@@ -225,17 +202,25 @@ bool TrkConnectHelper::ReceivePacket(int client_socket, TrkString& message, TrkS
 	{
 		std::chrono::milliseconds sleeptime(100);
 		std::this_thread::sleep_for(sleeptime);
-		char internal_string[1024];
-		int bytesRead = recv(client_socket, internal_string, 1024, 0);
+		TrkString internal_string;
+		int bytesRead = Recv(ssl_connection, client_socket, internal_string, 1024);
 		if (bytesRead < 0)
 		{
 			error_msg = "Receive failed unexceptedly.";
+			message = "";
 			return false;
 		}
 		else if (bytesRead == 0)
 		{
 			continue;
 		}
+
+		std::string test(buffer);
+		std::regex rpattern("(\r)"), npattern("(\n)");
+		test = std::regex_replace(test, std::regex("(\r)"), "\\r");
+		test = std::regex_replace(test, std::regex("(\n)"), "\\n");
+
+		std::cout << test << std::endl;
 
 		buffer = TrkString(internal_string, internal_string + bytesRead);
 
@@ -256,7 +241,8 @@ bool TrkConnectHelper::ReceivePacket(int client_socket, TrkString& message, TrkS
 							receivedData = (index == TrkString::npos) ? "" : receivedData.substr(index);
 							index = receivedData.find_last_not_of(WHITESPACE);
 							receivedData = (index == TrkString::npos) ? "" : receivedData.substr(0, index + 1);
-
+							
+							std::cout << receivedData << std::endl;
 							message = receivedData;
 							return true;
 						}
@@ -272,14 +258,19 @@ bool TrkConnectHelper::ReceivePacket(int client_socket, TrkString& message, TrkS
 				}
 			}
 			else {
-				if (buffer[i] == '\r')
+				int remainingBytes = bytesRead - lastIndex;
+
+				if (remainingBytes >= chunkSize) {
+					receivedData << TrkString(buffer.begin() + lastIndex, buffer.begin() + lastIndex + chunkSize);
+					lastIndex += chunkSize;
+					chunkSize = 0;
+					readingChunkSize = true;
+				}
+				else
 				{
-					if (i + 1 < bytesRead && buffer[i + 1] == '\n')
-					{
-						receivedData << TrkString(buffer.begin() + lastIndex, buffer.begin() + i);
-						readingChunkSize = true;
-						lastIndex = i;
-					}
+					receivedData << TrkString(buffer.begin() + lastIndex, buffer.end());
+					chunkSize -= remainingBytes;
+					lastIndex = bytesRead;
 				}
 			}
 		}
@@ -288,7 +279,7 @@ bool TrkConnectHelper::ReceivePacket(int client_socket, TrkString& message, TrkS
 	return true;
 }
 
-bool TrkConnectHelper::Connect_Internal(TrkCliClientOptionResults& opt_result, int& client_socket, TrkString& ErrorStr )
+bool TrkConnectHelper::Connect_Internal(TrkCliClientOptionResults& opt_result, TrkSSLCTX*& ssl_context, TrkSSL*& ssl_connection, int& client_socket, TrkString& ErrorStr )
 {
 	struct addrinfo *result = nullptr, *ptr = nullptr, hints;
 
@@ -321,10 +312,6 @@ bool TrkConnectHelper::Connect_Internal(TrkCliClientOptionResults& opt_result, i
 #endif
 		return false;
 	}
-
-#ifdef _WIN32
-	
-#endif
 
 	int errorCode;
 	for (ptr = result; ptr != nullptr; ptr = ptr->ai_next)
@@ -379,17 +366,98 @@ bool TrkConnectHelper::Connect_Internal(TrkCliClientOptionResults& opt_result, i
 	}
 
 	freeaddrinfo(result);
+
+	/*unsigned char response[5] = {0xEA, 0xEB, 0x00, 0xCC, (opt_result.trust ? 0x01 : 0x00)};
+	send(client_socket, reinterpret_cast<char*>(response), sizeof(response), 0);
+
+	unsigned char serverResponse[5];
+	int bytesRead = recv(client_socket, reinterpret_cast<char*>(serverResponse), sizeof(serverResponse), 0);
+
+	if (bytesRead == sizeof(serverResponse) &&
+		serverResponse[0] == 0xEA &&							// Special character 1 for Tintirek's TLS detection
+		serverResponse[1] == 0xEB &&							// Special character 2 for Tintirek's TLS detection
+		serverResponse[2] == 0x00 &&							// Empty character
+		serverResponse[3] == 0xCD &&							// CD: Server, CC: Client
+		serverResponse[4] != (opt_result.trust ? 0x01 : 0x00)	// Check server is using TLS mode
+		)
+	{
+		if (opt_result.trust)
+		{
+			ErrorStr << "The server is not using TLS mode. No need for trust mode.";
+		}
+		else
+		{
+			ErrorStr << "The server is using TLS mode. Please enable trust mode and try again.";
+		}
+
+#ifdef _WIN32
+		closesocket(client_socket);
+		WSACleanup();
+#else
+		close(client_socket);
+#endif
+		return false;
+	}*/
+
+	if (opt_result.trust)
+	{
+		TrkSSLHelper::InitSSL();
+		ssl_context = TrkSSLHelper::CreateClientMethod();
+		ssl_connection = TrkSSLHelper::CreateClient(ssl_context, client_socket);
+
+		if (TrkSSLHelper::ConnectServer(ssl_connection) == -1)
+		{
+			TrkSSLHelper::PrintErrors();
+			ErrorStr << "SSL Error. Error code: " << TrkSSLHelper::GetError(ssl_connection);
+
+			delete ssl_context;
+			delete ssl_connection;
+
+			return false;
+		}
+	}
+
 	return true;
 }
 
-bool TrkConnectHelper::Disconnect_Internal(int client_socket, TrkString& ErrorStr)
+bool TrkConnectHelper::Disconnect_Internal(TrkSSLCTX* ssl_context, TrkSSL* ssl_connection, int client_socket, TrkString& ErrorStr)
 {
 #ifdef _WIN32
-	closesocket(client_socket);
 	WSACleanup();
-#else
+	closesocket(client_socket);
+#elif
 	close(client_socket);
 #endif
 
+	delete ssl_connection;
+	delete ssl_context;
+
 	return true;
+}
+
+int TrkConnectHelper::Send(TrkSSL* ssl_connection, int client_socket, TrkString buf, int len)
+{
+	if (ssl_connection->GetClient() != nullptr)
+	{
+		return TrkSSLHelper::Write(ssl_connection, buf, len);
+	}
+	else
+	{
+		return send(client_socket, buf, len, 0);
+	}
+}
+
+int TrkConnectHelper::Recv(TrkSSL* ssl_connection, int client_socket, TrkString& buf, int len)
+{
+	if (ssl_connection->GetClient() != nullptr)
+	{
+		return TrkSSLHelper::Read(ssl_connection, buf, len);
+	}
+	else
+	{
+		char internal_strings[1024];
+		int bytes_read = recv(client_socket, internal_strings, len, 0);
+		buf = TrkString(internal_strings, internal_strings + bytes_read);
+		return bytes_read;
+	}
 }

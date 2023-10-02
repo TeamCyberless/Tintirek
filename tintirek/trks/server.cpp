@@ -38,12 +38,14 @@ void TrkServer::HandleConnection(TrkClientInfo* client_info)
 
 	if (!ReceivePacket(client_info, message, error_str))
 	{
+		client_info->mutex->lock();
 		LOG_ERR("Error with " << client_info->client_connection_info << ": " << error_str);
 #if WIN32
 		closesocket(client_info->client_socket);
 #else
 		close(client_info->client_socket);
 #endif
+		RemoveFromList(client_info);
 		return;
 	}
 
@@ -204,8 +206,10 @@ bool TrkServer::SendPacket(TrkClientInfo* client_info, const TrkString message, 
 		int sendSize = std::min<int>(chunkSize, remaining);
 
 		TrkString chunkHeader;
-		chunkHeader << sendSize << "\r\n";
-		if ((client_info->client_socket, chunkHeader, chunkHeader.size(), 0) <= 0)
+		char hexString[9];
+		std::sprintf(hexString, "%X", sendSize);
+		chunkHeader << hexString << "\r\n";
+		if (Send(client_info, chunkHeader, chunkHeader.size(), 0) <= 0)
 		{
 #ifdef _WIN32
 			error_code = WSAGetLastError();
@@ -258,6 +262,7 @@ bool TrkServer::ReceivePacket(TrkClientInfo* client_info, TrkString& message, Tr
 		if (bytesRead < 0)
 		{
 			error_msg = "Receive failed unexceptedly.";
+			message = "";
 			return false;
 		}
 		else if (bytesRead == 0)
@@ -298,14 +303,19 @@ bool TrkServer::ReceivePacket(TrkClientInfo* client_info, TrkString& message, Tr
 				}
 			}
 			else {
-				if (buffer[i] == '\r')
+				int remainingBytes = bytesRead - lastIndex;
+				
+				if (remainingBytes >= chunkSize) {
+					receivedData << TrkString(buffer.begin() + lastIndex, buffer.begin() + lastIndex + chunkSize);
+					lastIndex += chunkSize;
+					chunkSize = 0;
+					readingChunkSize = true;
+				}
+				else
 				{
-					if (i + 1 < bytesRead && buffer[i + 1] == '\n')
-					{
-						receivedData << TrkString(buffer.begin() + lastIndex, buffer.begin() + i);
-						readingChunkSize = true;
-						lastIndex = i;
-					}
+					receivedData << TrkString(buffer.begin() + lastIndex, buffer.end());
+					chunkSize -= remainingBytes;
+					lastIndex = bytesRead;
 				}
 			}
 		}
@@ -334,6 +344,9 @@ int TrkServer::Recv(TrkClientInfo* clientInfo, TrkString& buf, int len, bool use
 	}
 	else
 	{
-		return recv(clientInfo->client_socket, buf, len, 0);
+		char internal_strings[1024];
+		int bytes_read = recv(clientInfo->client_socket, internal_strings, len, 0);
+		buf = TrkString(internal_strings, internal_strings + bytes_read);
+		return bytes_read;
 	}
 }

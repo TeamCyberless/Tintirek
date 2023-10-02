@@ -11,6 +11,7 @@
 #include <climits>
 #include <string>
 #include <thread>
+#include <openssl/applink.c>
 
 #ifdef _WIN32
 #include <ws2tcpip.h>
@@ -312,15 +313,22 @@ int main(int argc, char** argv)
 
 	if (opt_result.ip_address == "" || opt_result.port == 0)
 	{
-		size_t found = opt_result.server_url.find(":");
+		TrkString realurl = opt_result.server_url;
+		if (realurl.startswith("tls:"))
+		{
+			opt_result.trust = true;
+			realurl = realurl.substr(4);
+		}
+
+		size_t found = realurl.find(":");
 		if (found != TrkString::npos)
 		{
-			opt_result.ip_address = opt_result.server_url.substr(0, found);
-			opt_result.port = atoi(opt_result.server_url.substr(found + 1));
+			opt_result.ip_address = realurl.substr(0, found);
+			opt_result.port = atoi(realurl.substr(found + 1));
 		}
 		else
 		{
-			opt_result.ip_address = opt_result.server_url;
+			opt_result.ip_address = realurl;
 			opt_result.port = 5566;
 		}
 	}
