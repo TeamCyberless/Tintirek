@@ -198,7 +198,7 @@ bool TrkServer::HandleCommand(TrkClientInfo* client_info, const TrkString Messag
 bool TrkServer::SendPacket(TrkClientInfo* client_info, const TrkString message, int& error_code)
 {
 	int totalSent = 0;
-	int chunkSize = 1024;
+	int chunkSize = 1022;
 
 	while (totalSent < message.size())
 	{
@@ -208,8 +208,8 @@ bool TrkServer::SendPacket(TrkClientInfo* client_info, const TrkString message, 
 		int sendSize = std::min<int>(chunkSize, remaining);
 
 		TrkString chunkHeader;
-		char hexString[9];
-		std::sprintf(hexString, "%X", sendSize);
+		char hexString[4];
+		std::sprintf(hexString, "%03X", sendSize);
 		chunkHeader << hexString << "\r\n";
 		if (Send(client_info, chunkHeader, chunkHeader.size(), client_info->client_ssl_socket != nullptr) <= 0)
 		{
@@ -219,16 +219,9 @@ bool TrkServer::SendPacket(TrkClientInfo* client_info, const TrkString message, 
 			return false;
 		}
 
-		TrkString sendData(message.begin() + totalSent, message.begin() + totalSent + sendSize);
-		if (Send(client_info, sendData, sendData.size(), client_info->client_ssl_socket != nullptr) <= 0)
-		{
-#ifdef _WIN32
-			error_code = WSAGetLastError();
-#endif
-			return false;
-		}
-
-		if (Send(client_info, "\r\n", 2, client_info->client_ssl_socket != nullptr) <= 0)
+		TrkString chunkBody(message.begin() + totalSent, message.begin() + totalSent + sendSize);
+		chunkBody << "\r\n";
+		if (Send(client_info, chunkBody, chunkBody.size(), client_info->client_ssl_socket != nullptr) <= 0)
 		{
 #ifdef _WIN32
 			error_code = WSAGetLastError();
@@ -239,7 +232,7 @@ bool TrkServer::SendPacket(TrkClientInfo* client_info, const TrkString message, 
 		totalSent += sendSize;
 	}
 
-	if (Send(client_info, "0\r\n\r\n", 5, client_info->client_ssl_socket != nullptr) <= 0)
+	if (Send(client_info, "0\r\n", 5, client_info->client_ssl_socket != nullptr) <= 0)
 	{
 #ifdef _WIN32
 		error_code = WSAGetLastError();
@@ -252,80 +245,51 @@ bool TrkServer::SendPacket(TrkClientInfo* client_info, const TrkString message, 
 
 bool TrkServer::ReceivePacket(TrkClientInfo* client_info, TrkString& message, TrkString& error_msg)
 {
-	TrkString buffer, receivedData;
-	bool readingChunkSize = true;
-	int chunkSize = 0, lastIndex = 0;
+	TrkString buffer, receivedData = "";
+	bool readingChunkHeader = true;
+	int chunkSize = 5, bytesRead;
 
 	while (true)
 	{
-		std::chrono::milliseconds sleeptime(100);
-		std::this_thread::sleep_for(sleeptime);
-		int bytesRead = Recv(client_info, buffer, 1024, client_info->client_ssl_socket != nullptr);
-		if (bytesRead < 0)
+		bytesRead = 0;
+		buffer = "";
+		while (chunkSize > bytesRead)
 		{
-			error_msg = "Receive failed unexceptedly.";
-			message = "";
-			return false;
-		}
-		else if (bytesRead == 0)
-		{
-			continue;
-		}
-
-		lastIndex = 0;
-		for (int i = 0; i < bytesRead; i++) {
-			if (readingChunkSize)
+			std::chrono::milliseconds sleeptime(100);
+			std::this_thread::sleep_for(sleeptime);
+			TrkString newBuffer;
+			int newBytesRead = Recv(client_info, newBuffer, chunkSize - bytesRead, client_info->client_ssl_socket != nullptr);
+			if (newBytesRead < 0)
 			{
-				if (buffer[i] == '\r')
-				{
-					if (i + 1 < bytesRead && buffer[i + 1] == '\n')
-					{
-						TrkString chunkSizeStr(buffer.begin() + lastIndex, buffer.begin() + i);
-						chunkSize = TrkString::stoi(chunkSizeStr, 16);
-						if (chunkSize == 0)
-						{
-							TrkString WHITESPACE = "\n\r\t\f\v";
-							size_t index = receivedData.find_first_not_of(WHITESPACE);
-							receivedData = (index == TrkString::npos) ? "" : receivedData.substr(index);
-							index = receivedData.find_last_not_of(WHITESPACE);
-							receivedData = (index == TrkString::npos) ? "" : receivedData.substr(0, index + 1);
-
-							message = receivedData;
-							return true;
-						}
-						readingChunkSize = false;
-						i += 2;
-						lastIndex = i;
-					}
-					else
-					{
-						error_msg = "Receive failed unexceptedly.";
-						return false;
-					}
-				}
+				error_msg = "Receive failed unexceptedly.";
+				message = "";
+				return false;
 			}
-			else {
-				int remainingBytes = bytesRead - lastIndex;
-				
-				if (remainingBytes >= chunkSize) {
-					receivedData << TrkString(buffer.begin() + lastIndex, buffer.begin() + lastIndex + chunkSize);
-				}
-				else
-				{
-					int endOfChunk = chunkSize + lastIndex;
-					receivedData << TrkString(buffer.begin() + lastIndex, buffer.begin() + endOfChunk);
-				}
-
-				i = lastIndex += chunkSize;
-				chunkSize = 0;
-				readingChunkSize = true;
-
-				if (i + 2 < bytesRead)
-				{
-					lastIndex += 3;
-					i += 3;
-				}
+			else if (newBytesRead == 0)
+			{
+				continue;
 			}
+			bytesRead += newBytesRead;
+			buffer << newBuffer;
+		}
+
+		if (readingChunkHeader)
+		{
+			TrkString chunkSizeStr(buffer.begin(), buffer.begin() + buffer.size() - 2);
+			chunkSize = TrkString::stoi(chunkSizeStr, 16);
+			if (chunkSize == 0)
+			{
+				message = receivedData;
+				return true;
+			}
+			chunkSize += 2;
+			readingChunkHeader = false;
+		}
+		else
+		{
+			receivedData << TrkString(buffer.begin(), buffer.begin() + chunkSize - 2);
+			chunkSize = 5;
+			readingChunkHeader = true;
 		}
 	}
 

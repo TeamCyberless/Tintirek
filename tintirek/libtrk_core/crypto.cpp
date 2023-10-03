@@ -24,8 +24,8 @@
 
 
 
-/* Peer verification */
-static int VerifyCallback(int preverify, X509_STORE_CTX* x509_ctx)
+/* Peer verification for Client-Side */
+static int ClientVerifyCallback(int preverify, X509_STORE_CTX* x509_ctx)
 {
 	X509* Cert = X509_STORE_CTX_get_current_cert(x509_ctx);
 	SSL* ssl = static_cast<SSL*>(X509_STORE_CTX_get_ex_data(x509_ctx, SSL_get_ex_data_X509_STORE_CTX_idx()));
@@ -214,7 +214,7 @@ TrkSSLCTX* TrkSSLHelper::CreateServerMethod()
 TrkSSLCTX* TrkSSLHelper::CreateClientMethod()
 {
 	SSL_CTX* ssl_ctx = SSL_CTX_new(TLS_client_method());
-	SSL_CTX_set_verify(ssl_ctx, SSL_VERIFY_PEER, VerifyCallback);
+	SSL_CTX_set_verify(ssl_ctx, SSL_VERIFY_PEER, ClientVerifyCallback);
 	return new TrkSSLCTX(ssl_ctx, true);
 }
 
