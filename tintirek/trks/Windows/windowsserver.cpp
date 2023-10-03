@@ -197,8 +197,17 @@ bool TrkWindowsServer::Run(TrkString& ErrorStr)
 						ssl = TrkSSLHelper::CreateClient(ssl_ctx, clientSocket);
 						if (TrkSSLHelper::AcceptClient(ssl) <= 0)
 						{
-							TrkSSLHelper::PrintErrors();
-							ErrorStr << "SSL error (errno: " << TrkSSLHelper::GetError(ssl) << ")";
+							TrkSSLHelper::RefreshErrors();
+							if (TrkSSLHelper::GetError(ssl) == 6)
+							{
+								ErrorStr << "Client disconnected during SSL (errno: 6)";
+							}
+							else
+							{
+								TrkSSLHelper::PrintErrors();
+								ErrorStr << "SSL error (errno: " << TrkSSLHelper::GetError(ssl) << ")";
+							}
+							
 							delete ssl;
 							closesocket(clientSocket);
 							continue;

@@ -82,6 +82,9 @@ public:
 	/* If true, trusts remote connection */
 	bool trust = false;
 
+	/* Stores the fingerprint of the last unverified certificate */
+	TrkString last_certificate_fingerprint = "";
+
 	/* Found IP address from server_url */
 	TrkString ip_address = "";
 	/* Found port number from server_url */

@@ -13,7 +13,14 @@
 #include <openssl/rsa.h>
 #include <openssl/evp.h>
 #include <filesystem>
-#include <regex>
+#include <fstream>
+
+#if _WIN32
+#include <windows.h>
+#include <shlobj.h>
+#endif
+
+#include "trk_cmdline.h"
 
 
 
@@ -21,6 +28,8 @@
 static int VerifyCallback(int preverify, X509_STORE_CTX* x509_ctx)
 {
 	X509* Cert = X509_STORE_CTX_get_current_cert(x509_ctx);
+	SSL* ssl = static_cast<SSL*>(X509_STORE_CTX_get_ex_data(x509_ctx, SSL_get_ex_data_X509_STORE_CTX_idx()));
+	TrkCliClientOptionResults* COptions = static_cast<TrkCliClientOptionResults*>(SSL_CTX_get_app_data(SSL_get_SSL_CTX(ssl)));
 
 	if (Cert != nullptr)
 	{
@@ -46,7 +55,65 @@ static int VerifyCallback(int preverify, X509_STORE_CTX* x509_ctx)
 
 		}
 
-		std::cout << fingerprint << std::endl;
+		TrkString HomeDir = "";
+#if _WIN32
+		{
+			PWSTR wszPath;
+			if (SUCCEEDED(SHGetKnownFolderPath(FOLDERID_Profile, 0, NULL, &wszPath)))
+			{
+				WideCharToMultiByte(CP_ACP, 0, wszPath, -1, HomeDir, HomeDir.size(), NULL, NULL);
+				CoTaskMemFree(wszPath);
+			}
+		}
+#else
+		{
+			const char* homeDir = getenv("HOME");
+			HomeDir = (homeDir != nullptr ? homeDir : "");
+		}
+#endif
+		
+		try
+		{
+			namespace fs = std::filesystem;
+			fs::path TrustFile = fs::canonical(fs::path((const char*)HomeDir) / ".trktrust");
+
+			if (fs::exists(TrustFile) && fs::is_regular_file(TrustFile))
+			{
+				std::ifstream TrustFileReader(TrustFile);
+				if (TrustFileReader.is_open())
+				{
+					std::string l;
+					while (std::getline(TrustFileReader, l))
+					{
+						const TrkString line(l.c_str());
+						if (fingerprint == line)
+						{
+							// We can trust this certificate.
+							TrustFileReader.close();
+							return 1;
+						}
+					}
+
+					TrustFileReader.close();
+				}
+
+				throw std::exception("");
+			}
+			else
+			{
+				// Don't trust this certificate because we don't have any trust
+				// chain file or we could not find this certificate in our chain.
+				throw std::exception("");
+			}
+		}
+		catch (std::exception ex)
+		{
+			if (COptions != nullptr)
+			{
+				COptions->last_certificate_fingerprint = TrkString(fingerprint);
+			}
+			return 0;
+		}
 	}
 
 	return 1;
@@ -109,6 +176,16 @@ void TrkSSLHelper::InitSSL()
 void TrkSSLHelper::PrintErrors()
 {
 	ERR_print_errors_fp(stderr);
+}
+
+void TrkSSLHelper::RefreshErrors()
+{
+	ERR_clear_error();
+}
+
+void TrkSSLHelper::SetupProgramOptionsToContext(TrkSSLCTX* Context, class TrkCliOptionResults* Options)
+{
+	SSL_CTX_set_app_data(Context->GetContext(), Options);
 }
 
 TrkSSLCTX* TrkSSLHelper::CreateServerMethod()

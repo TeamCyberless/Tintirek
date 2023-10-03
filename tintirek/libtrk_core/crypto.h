@@ -50,6 +50,10 @@ public:
 	static void InitSSL();
 	/* Print error messages to the standard error stream. Use this function primarily in Debug mode */
 	static void PrintErrors();
+	/* It's used for the purpose of refreshing error messages. */
+	static void RefreshErrors();
+	/* Adds program options to an SSL_CTX object and uses it during certificate verification */
+	static void SetupProgramOptionsToContext(TrkSSLCTX* Context, class TrkCliOptionResults* Options);
 	/* Create an SSL context using server methods */
 	static TrkSSLCTX* CreateServerMethod();
 	/* Create an SSL context using client methods */

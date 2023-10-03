@@ -58,6 +58,12 @@ public:
 	/* Get a pointer past the last character */
 	const char* end() const;
 
+	/* Get first character */
+	char first() const;
+
+	/* Get last character */
+	char last() const;
+
 	/* Checks if the string starts with the specified prefix */
 	bool startswith(const TrkString& prefix) const;
 
