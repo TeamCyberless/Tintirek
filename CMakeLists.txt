@@ -60,6 +60,8 @@ add_executable (trk
 	"tintirek/trk/commands/login.cpp"
 	"tintirek/trk/commands/logout.h"
 	"tintirek/trk/commands/logout.cpp"
+	"tintirek/trk/commands/trust.h"
+	"tintirek/trk/commands/trust.cpp"
 )
 # Create trks (server program) executable
 add_executable(trks

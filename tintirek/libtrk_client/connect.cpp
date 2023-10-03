@@ -401,26 +401,36 @@ bool TrkConnectHelper::Connect_Internal(TrkCliClientOptionResults& opt_result, T
 		if (TrkSSLHelper::ConnectServer(ssl_connection) <= 0)
 		{
 			TrkSSLHelper::RefreshErrors();
-			if (opt_result.last_certificate_fingerprint != "")
+			if (opt_result.requested_command->command == "trust")
 			{
-				if (opt_result.requested_command->command == "trust")
+				if (opt_result.last_certificate_fingerprint != "")
 				{
 					ErrorStr << "The server at '" << opt_result.server_url << "' requires your trust."
-						<< "\nFingerprint:" << opt_result.last_certificate_fingerprint
+						<< "\nFingerprint: " << opt_result.last_certificate_fingerprint
 						<< "\nDo you want to establish trust with this server? (y/n): ";
 				}
 				else
+				{
+					ErrorStr << "Trust has already been established for this server. ('" << opt_result.server_url << "')";
+					delete ssl_context;
+					delete ssl_connection;
+					return false;
+				}
+			}
+			else
+			{
+				if (opt_result.last_certificate_fingerprint != "")
 				{
 					ErrorStr << "Connection to '" << opt_result.server_url << "' could not be established."
 						<< "\nThis may be your first attempt to connect to this server."
 						<< "\nTo establish trust for this server, please run 'trk trust' command."
 						<< "\n\nFingerprint: " << opt_result.last_certificate_fingerprint;
 				}
-			}
-			else
-			{
-				TrkSSLHelper::PrintErrors();
-				ErrorStr << "SSL Error. Error code: " << TrkSSLHelper::GetError(ssl_connection);
+				else
+				{
+					TrkSSLHelper::PrintErrors();
+					ErrorStr << "SSL Error. Error code: " << TrkSSLHelper::GetError(ssl_connection);
+				}
 			}
 
 			delete ssl_context;

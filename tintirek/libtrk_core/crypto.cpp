@@ -29,7 +29,7 @@ static int VerifyCallback(int preverify, X509_STORE_CTX* x509_ctx)
 {
 	X509* Cert = X509_STORE_CTX_get_current_cert(x509_ctx);
 	SSL* ssl = static_cast<SSL*>(X509_STORE_CTX_get_ex_data(x509_ctx, SSL_get_ex_data_X509_STORE_CTX_idx()));
-	TrkCliClientOptionResults* COptions = static_cast<TrkCliClientOptionResults*>(SSL_CTX_get_app_data(SSL_get_SSL_CTX(ssl)));
+	TrkCliClientOptionResults* ClientOptions = static_cast<TrkCliClientOptionResults*>(SSL_CTX_get_app_data(SSL_get_SSL_CTX(ssl)));
 
 	if (Cert != nullptr)
 	{
@@ -58,11 +58,16 @@ static int VerifyCallback(int preverify, X509_STORE_CTX* x509_ctx)
 		TrkString HomeDir = "";
 #if _WIN32
 		{
-			PWSTR wszPath;
-			if (SUCCEEDED(SHGetKnownFolderPath(FOLDERID_Profile, 0, NULL, &wszPath)))
+			WCHAR path[MAX_PATH];
+			if (SUCCEEDED(SHGetFolderPathW(NULL, CSIDL_PROFILE, NULL, 0, path)))
 			{
-				WideCharToMultiByte(CP_ACP, 0, wszPath, -1, HomeDir, HomeDir.size(), NULL, NULL);
-				CoTaskMemFree(wszPath);
+				char* buffer = new char[MAX_PATH];
+				int length = WideCharToMultiByte(CP_UTF8, 0, path, -1, buffer, MAX_PATH, NULL, NULL);
+				if (length > 0)
+				{
+					HomeDir = buffer;
+				}
+				delete[] buffer;
 			}
 		}
 #else
@@ -88,8 +93,13 @@ static int VerifyCallback(int preverify, X509_STORE_CTX* x509_ctx)
 						const TrkString line(l.c_str());
 						if (fingerprint == line)
 						{
-							// We can trust this certificate.
 							TrustFileReader.close();
+
+							// We can trust this certificate but check if we're trying to execute trust command
+							if (ClientOptions->requested_command->command == "trust")
+							{
+								return 0;
+							}
 							return 1;
 						}
 					}
@@ -97,20 +107,20 @@ static int VerifyCallback(int preverify, X509_STORE_CTX* x509_ctx)
 					TrustFileReader.close();
 				}
 
-				throw std::exception("");
+				throw std::exception();
 			}
 			else
 			{
 				// Don't trust this certificate because we don't have any trust
 				// chain file or we could not find this certificate in our chain.
-				throw std::exception("");
+				throw std::exception();
 			}
 		}
 		catch (std::exception ex)
 		{
-			if (COptions != nullptr)
+			if (ClientOptions != nullptr)
 			{
-				COptions->last_certificate_fingerprint = TrkString(fingerprint);
+				ClientOptions->last_certificate_fingerprint = TrkString(fingerprint);
 			}
 			return 0;
 		}

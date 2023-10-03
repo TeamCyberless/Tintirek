@@ -36,6 +36,7 @@ const TrkCliOption trk_cli_options[] =
 	TrkCliOption("help", nullptr, "Displays help information about Tintirek.", TrkCliRequiredOption::NO_REQUIRED, "command"),
 	TrkCliOption("info", trkInfoCommand, "Displays connection, status and other information about Tintirek", TrkCliRequiredOption::NOT_ALLOWED),
 
+	TrkCliOption("trust", trkTrustCommand, "Establish trust with the server by verifying its identity and certificate", TrkCliRequiredOption::NOT_ALLOWED),
 	TrkCliOption("login", trkLoginCommand, "Performs the login process with the server", new TrkCliOptionFlag[1] { TRK_CLI_FLAG_STATUS }, 1, TrkCliRequiredOption::NO_REQUIRED, "user"),
 	TrkCliOption("logout", trkLogoutCommand, "Performs the login process with the server", TrkCliRequiredOption::NOT_ALLOWED),
 

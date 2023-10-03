@@ -16,6 +16,7 @@
 #include "commands/info.h"
 #include "commands/login.h"
 #include "commands/logout.h"
+#include "commands/trust.h"
 
 
 /* All commands are generated here */
@@ -24,6 +25,7 @@ TrkCliCommand* trkEditCommand = new TrkCliEditCommand;
 TrkCliCommand* trkInfoCommand = new TrkCliInfoCommand;
 TrkCliCommand* trkLoginCommand = new TrkCliLoginCommand;
 TrkCliCommand* trkLogoutCommand = new TrkCliLogoutCommand;
+TrkCliCommand* trkTrustCommand = new TrkCliTrustCommand;
 
 
 
