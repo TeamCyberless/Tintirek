@@ -137,11 +137,11 @@ bool TrkConnectHelper::SendCommandMultiple(class TrkCliClientOptionResults& opt_
 bool TrkConnectHelper::SendPacket(class TrkSSL* ssl_connection, int client_socket, const TrkString message, int& error_code)
 {
 	int totalSent = 0;
-	int chunkSize = 1022;
+	int chunkSize = 1024;
 
 	while (totalSent < message.size())
 	{
-		std::chrono::milliseconds sleeptime(100);
+		std::chrono::milliseconds sleeptime(1);
 		std::this_thread::sleep_for(sleeptime);
 		int remaining = message.size() - totalSent;
 		int sendSize = std::min<int>(chunkSize, remaining);
@@ -159,7 +159,6 @@ bool TrkConnectHelper::SendPacket(class TrkSSL* ssl_connection, int client_socke
 		}
 
 		TrkString chunkBody(message.begin() + totalSent, message.begin() + totalSent + sendSize);
-		chunkBody << "\r\n";
 		if (Send(ssl_connection, client_socket, chunkBody, chunkBody.size()) <= 0)
 		{
 #ifdef _WIN32
@@ -171,7 +170,7 @@ bool TrkConnectHelper::SendPacket(class TrkSSL* ssl_connection, int client_socke
 		totalSent += sendSize;
 	}
 
-	if (Send(ssl_connection, client_socket, "0\r\n", 5) <= 0)
+	if (Send(ssl_connection, client_socket, "000\r\n", 5) <= 0)
 	{
 #ifdef _WIN32
 		error_code = WSAGetLastError();
@@ -194,7 +193,7 @@ bool TrkConnectHelper::ReceivePacket(class TrkSSL* ssl_connection, int client_so
 		buffer = "";
 		while (chunkSize > bytesRead)
 		{
-			std::chrono::milliseconds sleeptime(100);
+			std::chrono::milliseconds sleeptime(1);
 			std::this_thread::sleep_for(sleeptime);
 			TrkString newBuffer;
 			int newBytesRead = Recv(ssl_connection, client_socket, newBuffer, chunkSize - bytesRead);
@@ -221,12 +220,11 @@ bool TrkConnectHelper::ReceivePacket(class TrkSSL* ssl_connection, int client_so
 				message = receivedData;
 				return true;
 			}
-			chunkSize += 2;
 			readingChunkHeader = false;
 		}
 		else
 		{
-			receivedData << TrkString(buffer.begin(), buffer.begin() + chunkSize - 2);
+			receivedData << TrkString(buffer.begin(), buffer.begin() + chunkSize);
 			chunkSize = 5;
 			readingChunkHeader = true;
 		}

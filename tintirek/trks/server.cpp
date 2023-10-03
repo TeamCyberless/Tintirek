@@ -198,11 +198,11 @@ bool TrkServer::HandleCommand(TrkClientInfo* client_info, const TrkString Messag
 bool TrkServer::SendPacket(TrkClientInfo* client_info, const TrkString message, int& error_code)
 {
 	int totalSent = 0;
-	int chunkSize = 1022;
+	int chunkSize = 1024;
 
 	while (totalSent < message.size())
 	{
-		std::chrono::milliseconds sleeptime(100);
+		std::chrono::milliseconds sleeptime(1);
 		std::this_thread::sleep_for(sleeptime);
 		int remaining = message.size() - totalSent;
 		int sendSize = std::min<int>(chunkSize, remaining);
@@ -220,7 +220,6 @@ bool TrkServer::SendPacket(TrkClientInfo* client_info, const TrkString message, 
 		}
 
 		TrkString chunkBody(message.begin() + totalSent, message.begin() + totalSent + sendSize);
-		chunkBody << "\r\n";
 		if (Send(client_info, chunkBody, chunkBody.size(), client_info->client_ssl_socket != nullptr) <= 0)
 		{
 #ifdef _WIN32
@@ -232,7 +231,7 @@ bool TrkServer::SendPacket(TrkClientInfo* client_info, const TrkString message, 
 		totalSent += sendSize;
 	}
 
-	if (Send(client_info, "0\r\n", 5, client_info->client_ssl_socket != nullptr) <= 0)
+	if (Send(client_info, "000\r\n", 5, client_info->client_ssl_socket != nullptr) <= 0)
 	{
 #ifdef _WIN32
 		error_code = WSAGetLastError();
@@ -255,7 +254,7 @@ bool TrkServer::ReceivePacket(TrkClientInfo* client_info, TrkString& message, Tr
 		buffer = "";
 		while (chunkSize > bytesRead)
 		{
-			std::chrono::milliseconds sleeptime(100);
+			std::chrono::milliseconds sleeptime(1);
 			std::this_thread::sleep_for(sleeptime);
 			TrkString newBuffer;
 			int newBytesRead = Recv(client_info, newBuffer, chunkSize - bytesRead, client_info->client_ssl_socket != nullptr);
@@ -282,12 +281,11 @@ bool TrkServer::ReceivePacket(TrkClientInfo* client_info, TrkString& message, Tr
 				message = receivedData;
 				return true;
 			}
-			chunkSize += 2;
 			readingChunkHeader = false;
 		}
 		else
 		{
-			receivedData << TrkString(buffer.begin(), buffer.begin() + chunkSize - 2);
+			receivedData << TrkString(buffer.begin(), buffer.begin() + chunkSize);
 			chunkSize = 5;
 			readingChunkHeader = true;
 		}
