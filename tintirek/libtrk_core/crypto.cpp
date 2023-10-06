@@ -12,123 +12,13 @@
 #include <openssl/pem.h>
 #include <openssl/rsa.h>
 #include <openssl/evp.h>
+#include <openssl/sha.h>
+#include <openssl/rand.h>
 #include <filesystem>
 #include <fstream>
 
-#if _WIN32
-#include <windows.h>
-#include <shlobj.h>
-#endif
-
+#include "trk_types.h"
 #include "trk_cmdline.h"
-
-
-
-/* Peer verification for Client-Side */
-static int ClientVerifyCallback(int preverify, X509_STORE_CTX* x509_ctx)
-{
-	X509* Cert = X509_STORE_CTX_get_current_cert(x509_ctx);
-	SSL* ssl = static_cast<SSL*>(X509_STORE_CTX_get_ex_data(x509_ctx, SSL_get_ex_data_X509_STORE_CTX_idx()));
-	TrkCliClientOptionResults* ClientOptions = static_cast<TrkCliClientOptionResults*>(SSL_CTX_get_app_data(SSL_get_SSL_CTX(ssl)));
-
-	if (Cert != nullptr)
-	{
-		if (preverify <= 0)
-		{
-			X509_STORE_CTX_set_error(x509_ctx, X509_V_OK);
-		}
-
-		unsigned char sha256_hash[SHA256_DIGEST_LENGTH];
-		X509_digest(Cert, EVP_sha256(), sha256_hash, nullptr);
-
-		TrkString fingerprint("");
-		for (int i = 0; i < SHA256_DIGEST_LENGTH; i++)
-		{
-			char buffer[3];
-			snprintf(buffer, sizeof(buffer), "%02X", sha256_hash[i]);
-			fingerprint << buffer;
-
-			if (i < SHA256_DIGEST_LENGTH - 1)
-			{
-				fingerprint << ":";
-			}
-
-		}
-
-		TrkString HomeDir = "";
-#if _WIN32
-		{
-			WCHAR path[MAX_PATH];
-			if (SUCCEEDED(SHGetFolderPathW(NULL, CSIDL_PROFILE, NULL, 0, path)))
-			{
-				char* buffer = new char[MAX_PATH];
-				int length = WideCharToMultiByte(CP_UTF8, 0, path, -1, buffer, MAX_PATH, NULL, NULL);
-				if (length > 0)
-				{
-					HomeDir = buffer;
-				}
-				delete[] buffer;
-			}
-		}
-#else
-		{
-			const char* homeDir = getenv("HOME");
-			HomeDir = (homeDir != nullptr ? homeDir : "");
-		}
-#endif
-		
-		try
-		{
-			namespace fs = std::filesystem;
-			fs::path TrustFile = fs::canonical(fs::path((const char*)HomeDir) / ".trktrust");
-
-			if (fs::exists(TrustFile) && fs::is_regular_file(TrustFile))
-			{
-				std::ifstream TrustFileReader(TrustFile);
-				if (TrustFileReader.is_open())
-				{
-					std::string l;
-					while (std::getline(TrustFileReader, l))
-					{
-						const TrkString line(l.c_str());
-						if (fingerprint == line)
-						{
-							TrustFileReader.close();
-
-							// We can trust this certificate but check if we're trying to execute trust command
-							if (ClientOptions->requested_command->command == "trust")
-							{
-								return 0;
-							}
-							return 1;
-						}
-					}
-
-					TrustFileReader.close();
-				}
-
-				throw std::exception();
-			}
-			else
-			{
-				// Don't trust this certificate because we don't have any trust
-				// chain file or we could not find this certificate in our chain.
-				throw std::exception();
-			}
-		}
-		catch (std::exception ex)
-		{
-			if (ClientOptions != nullptr)
-			{
-				ClientOptions->last_certificate_fingerprint = TrkString(fingerprint);
-			}
-			return 0;
-		}
-	}
-
-	return 1;
-}
-
 
 
 TrkSSL::TrkSSL(struct ssl_st* Client)
@@ -214,7 +104,9 @@ TrkSSLCTX* TrkSSLHelper::CreateServerMethod()
 TrkSSLCTX* TrkSSLHelper::CreateClientMethod()
 {
 	SSL_CTX* ssl_ctx = SSL_CTX_new(TLS_client_method());
-	SSL_CTX_set_verify(ssl_ctx, SSL_VERIFY_PEER, ClientVerifyCallback);
+#ifdef LIBRARY_TRK_CLIENT
+	SSL_CTX_set_verify(ssl_ctx, SSL_VERIFY_PEER, TrkSSLHelper::ClientVerifyCallback);
+#endif
 	return new TrkSSLCTX(ssl_ctx, true);
 }
 
@@ -292,4 +184,40 @@ bool TrkSSLHelper::LoadSSLFiles(TrkSSLCTX* SSLCTX, TrkString Path)
 	}
 
 	return true;
+}
+
+#ifndef LIBRARY_TRK_CLIENT
+int ClientVerifyCallback(int preverify, struct x509_store_ctx_st* x509_ctx)
+{ return 0; }
+#endif
+
+TrkString TrkCryptoHelper::SHA256(const TrkString& Str)
+{
+	unsigned char hash[SHA256_DIGEST_LENGTH];
+	SHA256_CTX sha256;
+	SHA256_Init(&sha256);
+	SHA256_Update(&sha256, (const char*)Str, Str.size());
+	SHA256_Final(hash, &sha256);
+
+	TrkString hashString;
+	char hex[3];
+	for (int i = 0; i < SHA256_DIGEST_LENGTH; i++)
+	{
+		sprintf(hex, "%02x", hash[i]);
+		hashString << hex;
+	}
+
+	return hashString;
+}
+
+TrkString TrkCryptoHelper::GenerateSalt(int length)
+{
+	unsigned char* saltBuffer = new unsigned char[length];
+	if (!RAND_bytes(saltBuffer, length))
+	{
+		delete[] saltBuffer;
+		return "";
+	}
+
+	return TrkString((const char*)saltBuffer, (const char*)(saltBuffer + length));
 }

@@ -24,8 +24,9 @@
 #define SOCKET_ERROR (-1)
 #endif
 
-#include "connect.h"
 #include "trk_cmdline.h"
+#include "connect.h"
+#include "passwd.h"
 
 
 bool TrkConnectHelper::SendCommand(TrkCliClientOptionResults& opt_result, const TrkString Command, TrkString& ErrorStr, TrkString& Returned)
@@ -38,11 +39,15 @@ bool TrkConnectHelper::SendCommand(TrkCliClientOptionResults& opt_result, const 
 		return false;
 	}
 
-	int errcode;
-	if (!SendPacket(ssl_connection, client_socket, Command, errcode))
+	if (!Authenticate_Internal(&opt_result, ssl_connection, client_socket, ErrorStr))
 	{
 		Disconnect_Internal(ssl_context, ssl_connection, client_socket, ErrorStr);
-		ErrorStr << "Send Failed! (errno: " << errcode << ")";
+		return false;
+	}
+
+	if (!SendPacket(ssl_connection, client_socket, Command, ErrorStr))
+	{
+		Disconnect_Internal(ssl_context, ssl_connection, client_socket, ErrorStr);
 		return false;
 	}
 
@@ -95,10 +100,9 @@ bool TrkConnectHelper::SendCommandMultiple(class TrkCliClientOptionResults& opt_
 		const char* command = Commands->Peek();
 
 		int errcode;
-		if (!SendPacket(ssl_connection, client_socket, command, errcode))
+		if (!SendPacket(ssl_connection, client_socket, command, ErrorStr))
 		{
 			Disconnect_Internal(ssl_context, ssl_connection, client_socket, ErrorStr);
-			ErrorStr << "Send Failed! (errno: " << errcode << ")";
 			return false;
 		}
 
@@ -134,7 +138,7 @@ bool TrkConnectHelper::SendCommandMultiple(class TrkCliClientOptionResults& opt_
 	return true;
 }
 
-bool TrkConnectHelper::SendPacket(class TrkSSL* ssl_connection, int client_socket, const TrkString message, int& error_code)
+bool TrkConnectHelper::SendPacket(class TrkSSL* ssl_connection, int client_socket, const TrkString message, TrkString& error_msg)
 {
 	int totalSent = 0;
 	int chunkSize = 1024;
@@ -152,18 +156,26 @@ bool TrkConnectHelper::SendPacket(class TrkSSL* ssl_connection, int client_socke
 		chunkHeader << hexString << "\r\n";
 		if (Send(ssl_connection, client_socket, chunkHeader, chunkHeader.size()) <= 0)
 		{
+			error_msg << "Send Failed! (errno: "
 #ifdef _WIN32
-			error_code = WSAGetLastError();
+				<< WSAGetLastError()
+#else
+				<< errno
 #endif
+				<< ")";
 			return false;
 		}
 
 		TrkString chunkBody(message.begin() + totalSent, message.begin() + totalSent + sendSize);
 		if (Send(ssl_connection, client_socket, chunkBody, chunkBody.size()) <= 0)
 		{
+			error_msg << "Send Failed! (errno: "
 #ifdef _WIN32
-			error_code = WSAGetLastError();
+				<< WSAGetLastError()
+#else
+				<< errno
 #endif
+				<< ")";
 			return false;
 		}
 
@@ -172,9 +184,13 @@ bool TrkConnectHelper::SendPacket(class TrkSSL* ssl_connection, int client_socke
 
 	if (Send(ssl_connection, client_socket, "000\r\n", 5) <= 0)
 	{
+		error_msg << "Send Failed! (errno: "
 #ifdef _WIN32
-		error_code = WSAGetLastError();
+			<< WSAGetLastError()
+#else
+			<< errno
 #endif
+			<< ")";
 		return false;
 	}
 
@@ -405,7 +421,7 @@ bool TrkConnectHelper::Connect_Internal(TrkCliClientOptionResults& opt_result, T
 	return true;
 }
 
-bool TrkConnectHelper::Disconnect_Internal(TrkSSLCTX* ssl_context, TrkSSL* ssl_connection, int client_socket, TrkString& ErrorStr)
+bool TrkConnectHelper::Disconnect_Internal(TrkSSLCTX* ssl_context, TrkSSL* ssl_connection, int client_socket, TrkString& error_msg)
 {
 #ifdef _WIN32
 	WSACleanup();
@@ -418,6 +434,59 @@ bool TrkConnectHelper::Disconnect_Internal(TrkSSLCTX* ssl_context, TrkSSL* ssl_c
 	delete ssl_context;
 
 	return true;
+}
+
+bool TrkConnectHelper::Authenticate_Internal(class TrkCliClientOptionResults* opt_result, TrkSSL* ssl_connection, int client_socket, TrkString& error_msg)
+{
+	TrkString auth = "", ticket, errmsg, result;
+	auth << "Username="
+		<< opt_result->username
+		<< ";";
+
+	if (TrkPasswdHelper::CheckSessionFileExists())
+	{
+		ticket = TrkPasswdHelper::GetSessionTicketByServerURL(opt_result->server_url);
+		if (ticket != "")
+		{
+			auth << "Ticket="
+				<< ticket;
+		}
+	}
+
+	std::cout << "Enter Password: ";
+	std::string input;
+	std::getline(std::cin, input);
+	TrkString passwd(input.c_str());
+
+	auth << "Password="
+		<< TrkCryptoHelper::SHA256(passwd);
+
+	if (!SendPacket(ssl_connection, client_socket, auth, errmsg))
+	{
+		error_msg << "Authentication failed: " << errmsg;
+		return false;
+	}
+
+	if (!ReceivePacket(ssl_connection, client_socket, result, errmsg))
+	{
+		error_msg << "Authentication failed: " << errmsg;
+		return false;
+	}
+
+	std::cout << result << std::endl;
+
+	size_t firstNewlinePos = result.find("\n");
+	TrkString firstLine = (firstNewlinePos != TrkString::npos) ? result.substr(0, firstNewlinePos) : result;
+
+	if (firstLine = "OK")
+	{
+		/*TrkString ticket = result.substr(firstNewlinePos + 1);
+		TrkPasswdHelper::SaveSessionTicket(ticket, opt_result->server_url);*/
+		return true;
+	}
+
+	error_msg = "Authentication failed: Login failed.";
+	return false;
 }
 
 int TrkConnectHelper::Send(TrkSSL* ssl_connection, int client_socket, TrkString buf, int len)

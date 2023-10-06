@@ -82,6 +82,9 @@ public:
 	/* Extract a substring from the string */
 	TrkString substr(size_t pos, size_t count = npos) const;
 
+	/* Erase a portion of the string */
+	void erase(size_t startPos = 0, size_t count = npos);
+
 
 	/* Assignment operator */
 	TrkString& operator=(const TrkString& other);

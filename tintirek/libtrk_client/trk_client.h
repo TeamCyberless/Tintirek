@@ -16,4 +16,8 @@
 TRK_VERSION_DEFINE(TrkClientVerVar, "trk_client");
 
 
+/* Get current user's directory */
+TrkString GetCurrentUserDir();
+
+
 #endif /* TRK_CLIENT_H */

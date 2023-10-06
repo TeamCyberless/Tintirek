@@ -24,13 +24,15 @@ public:
 
 protected:
 	/* Sends packet to client as chunked data */
-	static bool SendPacket(TrkSSL* ssl_connection, int client_socket, const TrkString message, int& error_code);
+	static bool SendPacket(TrkSSL* ssl_connection, int client_socket, const TrkString message, TrkString& error_msg);
 	/* Recovers packet from all chunk data from client */
 	static bool ReceivePacket(TrkSSL* ssl_connection, int client_socket, TrkString& message, TrkString& error_msg);
 	/* Internal code for connecting to the server */
 	static bool Connect_Internal(class TrkCliClientOptionResults& opt_result, TrkSSLCTX*& ssl_context, TrkSSL*& ssl_connection, int& client_socket, TrkString& ErrorStr);
 	/* Internal code for disconnecting from the server */
-	static bool Disconnect_Internal(TrkSSLCTX* ssl_context, TrkSSL* ssl_connection, int client_socket, TrkString& ErrorStr);
+	static bool Disconnect_Internal(TrkSSLCTX* ssl_context, TrkSSL* ssl_connection, int client_socket, TrkString& error_msg);
+	/* Internal code for authentication */
+	static bool Authenticate_Internal(class TrkCliClientOptionResults* opt_result, TrkSSL* ssl_connection, int client_socket, TrkString& error_msg);
 	
 	/* Send implementation with SSL and non-SSL */
 	static int Send(TrkSSL* ssl_connection, int client_socket, TrkString buf, int len);

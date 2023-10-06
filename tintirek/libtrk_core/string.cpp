@@ -170,6 +170,31 @@ TrkString TrkString::substr(size_t pos, size_t count) const
 	return result;
 }
 
+void TrkString::erase(size_t startPos, size_t count)
+{
+	if (startPos >= length) {
+		return;
+	}
+
+	if (count == npos) {
+		count = length - startPos;
+	}
+
+	if (startPos + count > length) {
+		count = length - startPos;
+	}
+
+	for (size_t i = startPos; i < length - count; ++i) {
+		data[i] = data[i + count];
+	}
+
+	for (size_t i = length - count; i < length; ++i) {
+		data[i] = '\0';
+	}
+
+	length -= count;
+}
+
 TrkString& TrkString::operator=(const TrkString& other)
 {
 	if (this == &other) return *this;
@@ -177,7 +202,15 @@ TrkString& TrkString::operator=(const TrkString& other)
 	delete[] data;
 	length = other.length;
 	data = new char[length + 1];
-	std::strcpy(data, other.data);
+	
+	if (other.data != nullptr)
+	{
+		std::strcpy(data, other.data);
+	}
+	else
+	{
+		std::strcpy(data, "\0");
+	}
 
 	return *this;
 }

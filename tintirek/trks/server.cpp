@@ -33,9 +33,15 @@
 
 void TrkServer::HandleConnection(TrkClientInfo* client_info)
 {
-	TrkString error_str;
-	TrkString message;
+	TrkString error_str, message;
 	client_info->mutex = std::make_unique<std::mutex>();
+
+	if (!Authenticate(client_info, error_str))
+	{
+		LOG_ERR("Error in authentication (" << client_info->client_connection_info << "): " << error_str);
+		Disconnect(client_info);
+		return;
+	}
 
 	if (!ReceivePacket(client_info, message, error_str))
 	{
@@ -47,11 +53,9 @@ void TrkServer::HandleConnection(TrkClientInfo* client_info)
 	HandleCommand(client_info, message, returned);
 
 	int errcode;
-	if (!SendPacket(client_info, returned, errcode))
+	if (!SendPacket(client_info, returned, error_str))
 	{
-		std::stringstream os;
-		os << "Send error! (errno: " << errcode << ")";
-		LOG_ERR("Error with " << client_info->client_connection_info << ": " << os.str());
+		LOG_ERR("Error with " << client_info->client_connection_info << ": " << error_str);
 	}
 
 	std::chrono::milliseconds sleeptime(1000);
@@ -70,6 +74,59 @@ void TrkServer::Disconnect(TrkClientInfo* client_info)
 #endif
 	LOG_OUT("Connection closed: " << client_info->client_connection_info);
 	RemoveFromList(client_info);
+}
+
+bool TrkServer::Authenticate(TrkClientInfo* client_info, TrkString& error_msg)
+{
+	TrkString error_str, message, username, passwd;
+	bool ticketauth = false;
+	if (!ReceivePacket(client_info, message, error_str))
+	{
+		return false;
+	}
+
+	while (message.size() > 0)
+	{
+		size_t pos = (message.find(";") != TrkString::npos ? message.find(";") : message.size() - 1);
+		const TrkString token = message.substr(0, pos);
+		size_t equalPos = token.find("=");
+		if (equalPos != TrkString::npos)
+		{
+			const TrkString key = token.substr(0, equalPos);
+			const TrkString value = token.substr(equalPos + 1);
+
+			if (key == "Username")
+			{
+				username = value;
+			}
+			else if (key == "Password")
+			{
+				passwd = value;
+				ticketauth = false;
+			}
+			else if (key == "Ticket")
+			{
+				passwd = value;
+				ticketauth = true;
+			}
+		}
+		message.erase(0, pos + 1);
+	}
+
+	if (username != "" && (!ticketauth || passwd != ""))
+	{
+		/* Dont need to check it. Just for the test */
+		TrkString str = "OK\n123456789ABCDEF";
+		if (!SendPacket(client_info, message, error_msg))
+		{
+			return false;
+		}
+		return true;
+	}
+
+	TrkString str = "ERROR\n", empty;
+	SendPacket(client_info, str, empty);
+	return false;
 }
 
 bool TrkServer::HandleConnectionMultiple(TrkClientInfo* client_info, TrkString& error_str)
@@ -91,12 +148,8 @@ bool TrkServer::HandleConnectionMultiple(TrkClientInfo* client_info, TrkString& 
 
 	if (strcmp(returned, "NONE\n") != 0)
 	{
-		int errcode;
-		if (!SendPacket(client_info, returned, errcode))
+		if (!SendPacket(client_info, returned, error_str))
 		{
-			TrkString ss;
-			ss << "Send error! (errno: " << errcode << ")";
-			error_str = ss;
 			return false;
 		}
 	}
@@ -154,10 +207,11 @@ bool TrkServer::HandleCommand(TrkClientInfo* client_info, const TrkString Messag
 	}
 	else if (command == "MultipleCommands")
 	{
-		int errcode;
-		if (!SendPacket(client_info, "OK\n", errcode))
+		if (!SendPacket(client_info, "OK\n", Returned))
 		{
-			Returned = "ERROR\n";
+			TrkString ss;
+			ss << "ERROR\n" << Returned;
+			Returned = ss;
 			return false;
 		}
 
@@ -195,7 +249,7 @@ bool TrkServer::HandleCommand(TrkClientInfo* client_info, const TrkString Messag
 	return false;
 }
 
-bool TrkServer::SendPacket(TrkClientInfo* client_info, const TrkString message, int& error_code)
+bool TrkServer::SendPacket(TrkClientInfo* client_info, const TrkString message, TrkString& error_str)
 {
 	int totalSent = 0;
 	int chunkSize = 1024;
@@ -213,18 +267,26 @@ bool TrkServer::SendPacket(TrkClientInfo* client_info, const TrkString message, 
 		chunkHeader << hexString << "\r\n";
 		if (Send(client_info, chunkHeader, chunkHeader.size(), client_info->client_ssl_socket != nullptr) <= 0)
 		{
+			error_str << "Send Failed! (errno: "
 #ifdef _WIN32
-			error_code = WSAGetLastError();
+				<< WSAGetLastError()
+#else
+				<< errno
 #endif
+				<< ")";
 			return false;
 		}
 
 		TrkString chunkBody(message.begin() + totalSent, message.begin() + totalSent + sendSize);
 		if (Send(client_info, chunkBody, chunkBody.size(), client_info->client_ssl_socket != nullptr) <= 0)
 		{
+			error_str << "Send Failed! (errno: "
 #ifdef _WIN32
-			error_code = WSAGetLastError();
+				<< WSAGetLastError()
+#else
+				<< errno
 #endif
+				<< ")";
 			return false;
 		}
 
@@ -233,16 +295,20 @@ bool TrkServer::SendPacket(TrkClientInfo* client_info, const TrkString message, 
 
 	if (Send(client_info, "000\r\n", 5, client_info->client_ssl_socket != nullptr) <= 0)
 	{
+		error_str << "Send Failed! (errno: "
 #ifdef _WIN32
-		error_code = WSAGetLastError();
+			<< WSAGetLastError()
+#else
+			<< errno
 #endif
+			<< ")";
 		return false;
 	}
 
 	return true;
 }
 
-bool TrkServer::ReceivePacket(TrkClientInfo* client_info, TrkString& message, TrkString& error_msg)
+bool TrkServer::ReceivePacket(TrkClientInfo* client_info, TrkString& message, TrkString& error_str)
 {
 	TrkString buffer, receivedData = "";
 	bool readingChunkHeader = true;
@@ -260,7 +326,7 @@ bool TrkServer::ReceivePacket(TrkClientInfo* client_info, TrkString& message, Tr
 			int newBytesRead = Recv(client_info, newBuffer, chunkSize - bytesRead, client_info->client_ssl_socket != nullptr);
 			if (newBytesRead < 0)
 			{
-				error_msg = "Receive failed unexceptedly.";
+				error_str = "Receive failed unexceptedly.";
 				message = "";
 				return false;
 			}

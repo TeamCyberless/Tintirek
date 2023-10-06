@@ -15,6 +15,7 @@
 #include <shlobj.h>
 #endif
 
+#include "trk_client.h"
 #include "trk_version.h"
 #include "connect.h"
 
@@ -51,27 +52,7 @@ bool TrkCliTrustCommand::CallCommand_Implementation(const TrkCliOption* Options,
 				return true;
 			}
 
-			TrkString HomeDir = "";
-#if _WIN32
-			{
-				WCHAR path[MAX_PATH];
-				if (SUCCEEDED(SHGetFolderPathW(NULL, CSIDL_PROFILE, NULL, 0, path)))
-				{
-					char* buffer = new char[MAX_PATH];
-					int length = WideCharToMultiByte(CP_UTF8, 0, path, -1, buffer, MAX_PATH, NULL, NULL);
-					if (length > 0)
-					{
-						HomeDir = buffer;
-					}
-					delete[] buffer;
-				}
-			}
-#else
-			{
-				const char* homeDir = getenv("HOME");
-				HomeDir = (homeDir != nullptr ? homeDir : "");
-			}
-#endif
+			TrkString HomeDir = GetCurrentUserDir();
 
 			try
 			{

@@ -11,7 +11,7 @@
 #include "trk_types.h"
 
 
-/* Implementation class for SSL (Client) */
+/* Implementation class for SSL */
 class TrkSSL
 {
 public:
@@ -42,7 +42,7 @@ private:
 	bool isclient;
 };
 
-/* Helper class for Cryptography (uses OpenSSL) */
+/* Helper class for SSL */
 class TrkSSLHelper
 {
 public:
@@ -72,6 +72,20 @@ public:
 	static int GetError(TrkSSL* Client);
 	/* Load private and public keys from the specified path */
 	static bool LoadSSLFiles(TrkSSLCTX* SSLCTX, TrkString Path);
+
+
+	/* Peer verification for Client-Side */
+	static int ClientVerifyCallback(int preverify, struct x509_store_ctx_st* x509_ctx);
+};
+
+/* Helper class foR Cryptography */
+class TrkCryptoHelper
+{
+public:
+	/* Calculate the SHA-256 hash of the input daha */
+	static TrkString SHA256(const TrkString& Str);
+	/* Cenerates a random salt, which is a random string of characters */
+	static TrkString GenerateSalt(int length);
 };
 
 

@@ -127,15 +127,17 @@ public:
 	virtual void HandleConnection(TrkClientInfo* client_info);
 	/*	Disconnects client */
 	virtual void Disconnect(TrkClientInfo* client_info);
+	/*	Process authentication */
+	virtual bool Authenticate(TrkClientInfo* client_info, TrkString& error_msg);
 	/*  Handles clients by iteration */
 	virtual bool HandleConnectionMultiple(TrkClientInfo* client_info, TrkString& error_str);
 	/*	Handle commands */
 	virtual bool HandleCommand(TrkClientInfo* client_info, const TrkString Message, TrkString& Returned);
 
 	/*	Sends packet to client as chunked data */
-	virtual bool SendPacket(TrkClientInfo* client_info, const TrkString message, int& error_code);
+	virtual bool SendPacket(TrkClientInfo* client_info, const TrkString message, TrkString& error_str);
 	/*	Recovers packet from all chunk data from client */
-	virtual bool ReceivePacket(TrkClientInfo* client_info, TrkString& message, TrkString& error_msg);
+	virtual bool ReceivePacket(TrkClientInfo* client_info, TrkString& message, TrkString& error_str);
 
 	/* Send implementation with SSL and non-SSL */
 	virtual int Send(TrkClientInfo* clientInfo, TrkString buf, int len, bool use_ssl);

@@ -21,9 +21,12 @@ set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 # Set sources for each library
 set(LIBTRK_CLIENT_SOURCES
 	"tintirek/libtrk_client/trk_client.h"
+	"tintirek/libtrk_client/client.cpp"
+	"tintirek/libtrk_client/cmdline.cpp"
 	"tintirek/libtrk_client/connect.h"
 	"tintirek/libtrk_client/connect.cpp"
-	"tintirek/libtrk_client/cmdline.cpp"
+	"tintirek/libtrk_client/passwd.h"
+	"tintirek/libtrk_client/passwd.cpp"
 )
 set(LIBTRK_CORE_SOURCES
 	"tintirek/libtrk_core/trk_core.h"
@@ -40,6 +43,10 @@ set(LIBTRK_CORE_SOURCES
 add_library(tintirek INTERFACE)
 add_library(trk_client SHARED ${LIBTRK_CLIENT_SOURCES})
 add_library(trk_core SHARED ${LIBTRK_CORE_SOURCES})
+
+# Add preprocessor for libraries
+target_compile_definitions(trk_core PRIVATE LIBRARY_TRK_CORE)
+target_compile_definitions(trk_client PRIVATE LIBRARY_TRK_CLIENT)
 
 # Define include directories
 target_include_directories(trk_client PUBLIC "tintirek/include" "tintirek/libtrk_client")
