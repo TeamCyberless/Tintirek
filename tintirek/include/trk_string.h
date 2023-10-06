@@ -89,6 +89,9 @@ public:
 	/* Assignment operator */
 	TrkString& operator=(const TrkString& other);
 
+	/* Addition operator */
+	TrkString operator+(const TrkString& other);
+
 	/* Equality operator with a C-style string */
 	bool operator==(const char* str) const;
 

@@ -28,6 +28,7 @@
 #include "trk_version.h"
 #include "trk_config.h"
 #include "trk_core.h"
+#include "trk_database.h"
 
 #include "server.h"
 #include "service.h"
@@ -99,6 +100,7 @@ bool return_argument_or_null(TrkString& argument, char opt, int& i, char** argv,
 const TrkVersion* libVersionList[] =
 {
 	&TrkCoreVerVar,
+	&TrkDatabaseVerVar,
 	nullptr
 };
 
@@ -244,6 +246,15 @@ int main(int argc, char** argv)
 	if (opt_result.running_root == "")
 	{
 		opt_result.running_root << fs::current_path().string();
+	}
+
+	{
+		LOG_OUT("Check and generate databases...");
+		auto dbInitStart = std::chrono::high_resolution_clock::now();
+
+		InitDatabases(opt_result.running_root);
+
+		LOG_OUT("Database generation done! Took " << std::chrono::duration_cast<std::chrono::duration<double>>(std::chrono::high_resolution_clock::now() - dbInitStart).count() << " seconds.");
 	}
 
 #ifdef WIN32 

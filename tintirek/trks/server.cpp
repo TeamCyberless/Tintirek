@@ -26,6 +26,7 @@
 
 
 #include "trk_version.h"
+#include "trk_database.h"
 #include "logger.h"
 #include "server.h"
 
@@ -38,7 +39,7 @@ void TrkServer::HandleConnection(TrkClientInfo* client_info)
 
 	if (!Authenticate(client_info, error_str))
 	{
-		LOG_ERR("Error in authentication (" << client_info->client_connection_info << "): " << error_str);
+		LOG_OUT("Error in authentication (" << client_info->client_connection_info << "): " << error_str);
 		Disconnect(client_info);
 		return;
 	}
@@ -58,14 +59,14 @@ void TrkServer::HandleConnection(TrkClientInfo* client_info)
 		LOG_ERR("Error with " << client_info->client_connection_info << ": " << error_str);
 	}
 
-	std::chrono::milliseconds sleeptime(1000);
-	std::this_thread::sleep_for(sleeptime);
-
 	Disconnect(client_info);
 }
 
 void TrkServer::Disconnect(TrkClientInfo* client_info)
 {
+	std::chrono::milliseconds sleeptime(1000);
+	std::this_thread::sleep_for(sleeptime);
+
 	client_info->mutex->lock();
 #if WIN32
 	closesocket(client_info->client_socket);
@@ -115,13 +116,34 @@ bool TrkServer::Authenticate(TrkClientInfo* client_info, TrkString& error_msg)
 
 	if (username != "" && (!ticketauth || passwd != ""))
 	{
-		/* Dont need to check it. Just for the test */
-		TrkString str = "OK\n123456789ABCDEF";
-		if (!SendPacket(client_info, message, error_msg))
+		TrkSqliteQueryResult user = GetUserFromDB(username, "password_hash, salt, iteration");
+		if (user.IsValid())
 		{
-			return false;
+			if (!ticketauth)
+			{
+				const TrkString password_hashed = user.GetString(5);
+				const TrkString salt = user.GetString(6);
+				int iteration = user.GetInt(7);
+
+				TrkString val = passwd;
+				for (int i = 0; i < iteration; i++)
+				{
+					val = TrkCryptoHelper::SHA256(val + salt);
+				}
+
+				if (val == password_hashed)
+				{
+					TrkString str = "OK\n123456789ABCDEF";
+					if (!SendPacket(client_info, message, error_msg))
+					{
+						return false;
+					}
+					return true;
+				}
+			}
 		}
-		return true;
+
+		error_msg << "Username or password invalid. (Username: " << username << ")";
 	}
 
 	TrkString str = "ERROR\n", empty;

@@ -1,5 +1,5 @@
 /*
- *	trk_client.h
+ *	client.cpp
  *
  *	Client functions of Tintirek's Client Library
  */

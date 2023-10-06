@@ -12,7 +12,7 @@
 #include "trk_version.h"
 
 
- /* Library version definition */
+/* Library version definition */
 TRK_VERSION_DEFINE(TrkClientVerVar, "trk_client");
 
 

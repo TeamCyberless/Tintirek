@@ -473,12 +473,10 @@ bool TrkConnectHelper::Authenticate_Internal(class TrkCliClientOptionResults* op
 		return false;
 	}
 
-	std::cout << result << std::endl;
-
 	size_t firstNewlinePos = result.find("\n");
 	TrkString firstLine = (firstNewlinePos != TrkString::npos) ? result.substr(0, firstNewlinePos) : result;
 
-	if (firstLine = "OK")
+	if (firstLine == "OK")
 	{
 		/*TrkString ticket = result.substr(firstNewlinePos + 1);
 		TrkPasswdHelper::SaveSessionTicket(ticket, opt_result->server_url);*/

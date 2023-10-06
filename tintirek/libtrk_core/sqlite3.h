@@ -59,6 +59,9 @@ class TrkSqliteValue
 public:
 	TrkSqliteValue(TrkSqliteStatement* Statement, int ColumnIndex);
 
+	/* Returns true if statement is valid */
+	bool IsValid() const;
+
 	/* Get the data type of the value */
 	int GetType() const;
 	/* Get the text representation of the value */
@@ -83,6 +86,8 @@ public:
 
 	/* Move to the next row in the result set */
 	bool Next();
+	/* Returns true if statement is valid */
+	bool IsValid() const;
 
 	/* Get the string value from the specified column in the current row */
 	TrkString GetString(int ColumnIndex) const;

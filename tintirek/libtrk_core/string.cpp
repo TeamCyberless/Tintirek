@@ -215,6 +215,14 @@ TrkString& TrkString::operator=(const TrkString& other)
 	return *this;
 }
 
+TrkString TrkString::operator+(const TrkString& other)
+{
+	char* result = new char[length + other.length + 1];
+	strcpy(result, data);
+	strcpy(result, other.data);
+	return TrkString(result);
+}
+
 bool TrkString::operator==(const char* str) const
 {
 	if (str == nullptr && data == nullptr)

@@ -89,6 +89,11 @@ TrkSqliteValue::TrkSqliteValue(TrkSqliteStatement* Statement, int ColumnIndex)
 	, column_index(ColumnIndex)
 { }
 
+bool TrkSqliteValue::IsValid() const
+{
+	return statement != nullptr;
+}
+
 int TrkSqliteValue::GetType() const
 {
 	return sqlite3_column_type((sqlite3_stmt*)*statement, column_index);
@@ -124,6 +129,11 @@ TrkSqliteQueryResult::~TrkSqliteQueryResult()
 bool TrkSqliteQueryResult::Next()
 {
 	return statement->Step() == SQLITE_ROW;
+}
+
+bool TrkSqliteQueryResult::IsValid() const
+{
+	return statement != nullptr;
 }
 
 TrkString TrkSqliteQueryResult::GetString(int ColumnIndex) const
