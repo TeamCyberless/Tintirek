@@ -84,8 +84,8 @@ class TrkCryptoHelper
 public:
 	/* Calculate the SHA-256 hash of the input daha */
 	static TrkString SHA256(const TrkString& Str);
-	/* Cenerates a random salt, which is a random string of characters */
-	static TrkString GenerateSalt(int length);
+	/* Cenerates a 16 bytes length random salt, which is a random string of characters */
+	static TrkString GenerateSalt();
 };
 
 

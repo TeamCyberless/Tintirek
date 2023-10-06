@@ -128,7 +128,9 @@ bool TrkServer::Authenticate(TrkClientInfo* client_info, TrkString& error_msg)
 				TrkString val = passwd;
 				for (int i = 0; i < iteration; i++)
 				{
-					val = TrkCryptoHelper::SHA256(val + salt);
+					TrkString need_crypt;
+					need_crypt << val << "::" << salt;
+					val = TrkCryptoHelper::SHA256(need_crypt);
 				}
 
 				if (val == password_hashed)

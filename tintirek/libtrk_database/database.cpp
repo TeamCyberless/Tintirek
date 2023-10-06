@@ -17,7 +17,7 @@ TrkSqliteDB* userDB = nullptr;
                                      "username TEXT UNIQUE NOT NULL," \
                                      "fullname TEXT NOT NULL," \
                                      "email TEXT UNIQUE NOT NULL," \
-                                     "ticket TEXT NOT NULL," \
+                                     "ticket TEXT NULL," \
                                      "password_hash TEXT NOT NULL," \
                                      "salt TEXT NOT NULL," \
                                      "iteration INTEGER NOT NULL DEFAULT 3," \

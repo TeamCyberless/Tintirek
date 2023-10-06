@@ -210,14 +210,49 @@ TrkString TrkCryptoHelper::SHA256(const TrkString& Str)
 	return hashString;
 }
 
-TrkString TrkCryptoHelper::GenerateSalt(int length)
+TrkString TrkCryptoHelper::GenerateSalt()
 {
-	unsigned char* saltBuffer = new unsigned char[length];
-	if (!RAND_bytes(saltBuffer, length))
+	TrkString salt;
+	unsigned char* saltBuffer = new unsigned char[12];
+	BIO *b64 = nullptr, *out = nullptr;
+	BUF_MEM* bptr = nullptr;
+
+	if ((b64 = BIO_new(BIO_f_base64())) == nullptr)
 	{
 		delete[] saltBuffer;
 		return "";
 	}
 
-	return TrkString((const char*)saltBuffer, (const char*)(saltBuffer + length));
+	if ((out = BIO_new(BIO_s_mem())) == nullptr)
+	{
+		BIO_free(b64);
+		delete[] saltBuffer;
+		return "";
+	}
+
+	out = BIO_push(b64, out);
+	BIO_set_flags(out, BIO_FLAGS_BASE64_NO_NL);
+	
+	if (!RAND_bytes(saltBuffer, 12))
+	{
+		delete[] saltBuffer;
+		BIO_free_all(out);
+		return "";
+	}
+
+	BIO_write(out, saltBuffer, 12);
+	BIO_flush(out);
+
+	out = BIO_pop(b64);
+
+	BIO_write(out, "\0", 1);
+	BIO_get_mem_ptr(out, &bptr);
+
+	salt = TrkString(bptr->data, bptr->data + bptr->length);
+
+	BIO_set_close(out, BIO_CLOSE);
+	BIO_free_all(out);
+	delete[] saltBuffer;
+
+	return salt;
 }
