@@ -8,21 +8,10 @@
 #include "login.h"
 
 #include <iostream>
-#include <filesystem>
-#include <fstream>
-
-#ifdef WIN32
-#include <Shlobj.h>
-#else
-// @TODO: Linux Includes
-#endif
 
 #include "trk_version.h"
 #include "connect.h"
 #include "passwd.h"
-
-namespace fs = std::filesystem;
-
 
 bool TrkCliLoginCommand::CallCommand_Implementation(const TrkCliOption* Options, TrkCliOptionResults* Results)
 {
@@ -51,7 +40,16 @@ bool TrkCliLoginCommand::CallCommand_Implementation(const TrkCliOption* Options,
 		return true;
 	}
 
-	std::cout << "Login successful." << std::endl;
+	if (Results->showsessionticket)
+	{
+		TrkString ticket = TrkPasswdHelper::GetSessionTicketByServerURL(ClientResults->server_url);
+		std::cout << ticket << std::endl;
+	}
+	else
+	{
+		std::cout << "User \"" << ClientResults->username << "\" logged in." << std::endl;
+	}
+	
 	return true;
 }
 

@@ -49,6 +49,8 @@ public:
 	TrkSSL* client_ssl_socket;
 	/*	Client connection info (IP:PORT) */
 	TrkString client_connection_info = "";
+	/*	Client username */
+	TrkString username = "";
 
 protected:
 	/* Linked list's next element */

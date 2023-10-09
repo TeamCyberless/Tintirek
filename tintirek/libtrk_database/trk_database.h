@@ -24,6 +24,9 @@ bool GetUserPasswdFromDB(TrkString username, TrkString& passwd, TrkString& salt,
 /* Get user ticket information from database */
 bool GetUserTicketFromDB(TrkString username, TrkString& ticket, int64_t& endtimeunix);
 
+/* Resets user ticket in database */
+bool ResetUserTicketDB(TrkString username);
+
 /* Update user ticket also with ticket time */
 bool UpdateUserTicketDB(TrkString username, TrkString ticket);
 

@@ -42,7 +42,7 @@ TrkCliCommand* trkTrustCommand = new TrkCliTrustCommand;
 #define TRK_CLI_FLAG_PREVIEW TrkCliOptionFlag('p', "Displays a preview of this command operation without changing any data.")
 
 /* Displays status */
-#define TRK_CLI_FLAG_STATUS TrkCliOptionFlag('s', "Displays the status rather than storing it in the local system.")
+#define TRK_CLI_FLAG_STATUS TrkCliOptionFlag('s', "Displays the ticket information.")
 
 /* Specifies filetype of added/edited file */
 #define TRK_CLI_FLAG_TYPE TrkCliOptionFlag('t', "adds/edits the file as the specified filetype, overriding any settings in the typemap table.", "filetype")

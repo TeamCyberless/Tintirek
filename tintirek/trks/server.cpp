@@ -122,6 +122,8 @@ bool TrkServer::Authenticate(TrkClientInfo* client_info, TrkString& error_msg, b
 		message.erase(0, pos + 1);
 	}
 
+	client_info->username = username;
+
 	if (username != "" && (!ticketauth || passwd != ""))
 	{
 		if (!ticketauth)
@@ -279,6 +281,12 @@ bool TrkServer::HandleCommand(TrkClientInfo* client_info, const TrkString Messag
 		Returned = ss;
 		return true;
 	}
+	else if (command == "Logout")
+	{
+		ResetUserTicketDB(client_info->username);
+		Returned << "OK\n";
+		return true;
+	}
 	else if (command == "MultipleCommands")
 	{
 		if (!SendPacket(client_info, "OK\n", Returned))
@@ -306,16 +314,12 @@ bool TrkServer::HandleCommand(TrkClientInfo* client_info, const TrkString Messag
 	}
 	else if (command == "Add")
 	{
-		TrkString ss;
-		ss << "OK\n" << parameters[0] << " -- " << "opened for client";
-		Returned = ss;
+		Returned << "OK\n" << parameters[0] << " -- " << "opened for client";
 		return true;
 	}
 	else if (command == "Edit")
 	{
-		TrkString ss;
-		ss << "OK\n" << parameters[0] << " -- " << "already opened for client";
-		Returned = ss;
+		Returned << "OK\n" << parameters[0] << " -- " << "already opened for client";
 		return true;
 	}
 

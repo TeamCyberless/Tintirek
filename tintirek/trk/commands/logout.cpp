@@ -10,14 +10,42 @@
 #include <iostream>
 
 #include "trk_version.h"
+#include "connect.h"
+#include "passwd.h"
 
 
 bool TrkCliLogoutCommand::CallCommand_Implementation(const TrkCliOption* Options, TrkCliOptionResults* Results)
 {
-	return false;
+	TrkCliClientOptionResults* ClientResults = static_cast<TrkCliClientOptionResults*>(Results);
+
+	if (TrkPasswdHelper::CheckSessionFileExists())
+	{
+		TrkString ticket = TrkPasswdHelper::GetSessionTicketByServerURL(ClientResults->server_url);
+		if (ticket.size() == 0)
+		{
+			std::cout << "Already logged out." << std::endl;
+			return true;
+		}
+		else
+		{
+			TrkString returned, errmsg;
+			if (!TrkConnectHelper::SendCommand(*ClientResults, "Logout", errmsg, returned))
+			{
+				std::cerr << errmsg << std::endl;
+				return true;
+			}
+			else
+			{
+				TrkPasswdHelper::DeleteSessionTicket(ClientResults->server_url);
+			}
+		}
+	}
+
+	std::cout << "User \"" << ClientResults->username << "\" logged out." << std::endl;
+	return true;
 }
 
 bool TrkCliLogoutCommand::CheckCommandFlags_Implementation(const char Flag)
 {
-	return Flag == 's';
+	return false;
 }

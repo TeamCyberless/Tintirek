@@ -46,7 +46,6 @@ bool GetUserPasswdFromDB(TrkString username, TrkString& passwd, TrkString& salt,
         passwd = Query.GetColumn(0);
         salt = Query.GetColumn(1);
         iteration = Query.GetColumn(2);
-        Query.Reset();
 
         return true;
     }
@@ -65,7 +64,6 @@ bool GetUserTicketFromDB(TrkString username, TrkString& ticket, int64_t& endtime
         Query.ExecuteStep();
         ticket = Query.GetColumn(0);
         endtimeunix = Query.GetColumn(1);
-        Query.Reset();
 
         return true;
     }
@@ -74,24 +72,34 @@ bool GetUserTicketFromDB(TrkString username, TrkString& ticket, int64_t& endtime
     return false;
 }
 
+bool ResetUserTicketDB(TrkString username)
+{
+    TrkSqlite::TrkStatement Query(*userDB, "UPDATE user SET ticket = NULL, ticket_end = NULL WHERE username = ?");
+    Query.Bind(1, username);
+
+    try
+    {
+        return Query.Execute() > 0;
+    }
+    catch (TrkSqlite::TrkDatabaseException& ex) {}
+
+    return false;
+}
+
 bool UpdateUserTicketDB(TrkString username, TrkString ticket)
 {
     int64_t unix_ticket_end = static_cast<int64_t>(std::chrono::system_clock::to_time_t(std::chrono::system_clock::now() + std::chrono::hours(24)));
 
+    TrkSqlite::TrkStatement Query(*userDB, TrkString("UPDATE user SET ticket_end = ?, ticket = ? WHERE username = ?"));
+    Query.Bind(1, unix_ticket_end);
+    Query.Bind(2, ticket);
+    Query.Bind(3, username);
+
     try
     {
-        TrkSqlite::TrkStatement Query(*userDB, TrkString("UPDATE user SET ticket_end = ?, ticket = ? WHERE username = ?"));
-        Query.Bind(1, unix_ticket_end);
-        Query.Bind(2, ticket);
-        Query.Bind(3, username);
-
         return Query.Execute() > 0;
-        Query.Reset();
     }
-    catch (TrkSqlite::TrkDatabaseException& ex) 
-    {
-        std::cout << ex.what() << " (code: " << ex.GetErrorCode() << ", extended: " << ex.GetExtendedErrorCode() << ")" << std::endl;
-    }
+    catch (TrkSqlite::TrkDatabaseException& ex) { }
 
     return false;
 }

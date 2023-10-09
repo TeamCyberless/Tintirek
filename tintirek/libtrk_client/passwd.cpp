@@ -98,6 +98,64 @@ bool TrkPasswdHelper::SaveSessionTicket(TrkString Ticket, TrkString ServerUrl)
 	return false;
 }
 
+bool TrkPasswdHelper::DeleteSessionTicket(TrkString ServerUrl)
+{
+	TrkString HomeDir = GetCurrentUserDir();
+
+	try
+	{
+		fs::path SessionFile = fs::canonical(fs::path((const char*)HomeDir) / ".trksession");
+
+		if (fs::exists(SessionFile) && fs::is_regular_file(SessionFile))
+		{
+			std::ifstream input(SessionFile);
+			std::ofstream output(fs::temp_directory_path() / "trktempfile.txt");
+
+			if (!input || !output)
+			{
+				throw std::exception();
+			}
+
+			std::string l;
+			while (std::getline(input, l))
+			{
+				const TrkString line(l.c_str());
+				if (line.find(ServerUrl + "=") != 0)
+				{
+					output << line << std::endl;
+				}
+			}
+
+			input.close();
+			output.close();
+			fs::rename(fs::temp_directory_path() / "trktempfile.txt", SessionFile);
+
+			return true;
+		}
+	}
+	catch (std::filesystem::filesystem_error& ex)
+	{
+		if (!fs::exists(ex.path1()))
+		{
+			std::fstream SessionFileCreater(ex.path1(), std::ios::out);
+			if (!SessionFileCreater)
+			{
+				std::cout << "Error for creating session file" << std::endl;
+				return false;
+			}
+
+			SessionFileCreater.close();
+			return true; // File created. no need to change anything.
+		}
+	}
+	catch (std::exception& ex)
+	{
+		// No need to anything here
+	}
+
+	return false;
+}
+
 bool TrkPasswdHelper::ChangeSessionTicket(TrkString Ticket, TrkString ServerUrl)
 {
 	TrkString HomeDir = GetCurrentUserDir();
