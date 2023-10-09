@@ -98,6 +98,12 @@ public:
 	/* Inequality operator with a C-style string */
 	bool operator!=(const char* str) const;
 
+	/* Equality operator with a Tintirek's string */
+	bool operator==(TrkString str) const;
+
+	/* Inequality operator with Tintirek's string */
+	bool operator!=(TrkString str) const;
+
 	/* Conversion operator to char* */
 	operator char* ();
 

@@ -245,7 +245,7 @@ int main(int argc, char** argv)
 
 	if (opt_result.running_root == "")
 	{
-		opt_result.running_root << fs::current_path().string();
+		opt_result.running_root << fs::current_path().string() << (char)fs::path::preferred_separator;
 	}
 
 	{

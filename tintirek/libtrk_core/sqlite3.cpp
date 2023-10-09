@@ -6,267 +6,520 @@
 
 
 #include <iostream>
-
 #include "sqlite3.h"
+#include <../../deps/sqlite-amalgamation/sqlite3.h>
 
+TrkString TrkSqlite::GetLibVersion()
+{
+	return TrkString(sqlite3_libversion());
+}
 
-TrkSqliteStatement::TrkSqliteStatement(sqlite3_stmt* Statement)
-	: statement(Statement)
+int TrkSqlite::GetLibVersionNumber()
+{
+	return sqlite3_libversion_number();
+}
+
+TrkSqlite::TrkDatabaseException::TrkDatabaseException(const TrkString ErrorMessage, int ReturnValue)
+	: std::runtime_error(ErrorMessage)
+	, errcode(ReturnValue)
+	, errextndcode(-1)
 { }
 
-TrkSqliteStatement::~TrkSqliteStatement()
-{
-	if (statement)
-	{
-		sqlite3_finalize(statement);
-	}
-}
-
-int TrkSqliteStatement::Step()
-{
-	return sqlite3_step(statement);
-}
-
-void TrkSqliteStatement::Reset()
-{
-	sqlite3_reset(statement);
-}
-
-TrkSqliteStatement::operator sqlite3_stmt* () const
-{
-	return statement;
-}
-
-void TrkSqliteStatement::BindText(int Index, TrkString Text)
-{
-	sqlite3_bind_text(statement, Index, Text, -1, SQLITE_STATIC);
-}
-
-void TrkSqliteStatement::BindInt(int Index, int Value)
-{
-	sqlite3_bind_int(statement, Index, Value);
-}
-
-void TrkSqliteStatement::BindDouble(int Index, double Value)
-{
-	sqlite3_bind_double(statement, Index, Value);
-}
-
-void TrkSqliteStatement::BindNull(int Index)
-{
-	sqlite3_bind_null(statement, Index);
-}
-
-TrkString TrkSqliteStatement::GetText(int Index) const
-{
-	if (Index >= 0 && Index < sqlite3_column_count(statement)) {
-		const char* text = reinterpret_cast<const char*>(sqlite3_column_text(statement, Index));
-		if (text) {
-			return TrkString(text);
-		}
-	}
-	return TrkString();
-}
-
-int TrkSqliteStatement::GetInt(int Index) const
-{
-	if (Index >= 0 && Index < sqlite3_column_count(statement)) {
-		return sqlite3_column_int(statement, Index);
-	}
-	return 0;
-}
-
-double TrkSqliteStatement::GetDouble(int Index) const
-{
-	if (Index >= 0 && Index < sqlite3_column_count(statement)) {
-		return sqlite3_column_double(statement, Index);
-	}
-	return 0;
-}
-
-TrkSqliteValue::TrkSqliteValue(TrkSqliteStatement* Statement, int ColumnIndex)
-	: statement(Statement)
-	, column_index(ColumnIndex)
+TrkSqlite::TrkDatabaseException::TrkDatabaseException(struct sqlite3* Database, int ReturnValue)
+	: std::runtime_error(sqlite3_errmsg(Database))
+	, errcode(ReturnValue)
+	, errextndcode(sqlite3_extended_errcode(Database))
 { }
 
-bool TrkSqliteValue::IsValid() const
-{
-	return statement != nullptr;
-}
-
-int TrkSqliteValue::GetType() const
-{
-	return sqlite3_column_type((sqlite3_stmt*)*statement, column_index);
-}
-
-TrkString TrkSqliteValue::GetText() const
-{
-	return TrkString(reinterpret_cast<const char*>(sqlite3_column_text((sqlite3_stmt*)statement, column_index)));
-}
-
-int TrkSqliteValue::GetInt() const
-{
-	return sqlite3_column_int((sqlite3_stmt*)statement, column_index);
-}
-
-double TrkSqliteValue::GetDouble() const
-{
-	return sqlite3_column_double((sqlite3_stmt*)statement, column_index);
-}
-
-TrkSqliteQueryResult::TrkSqliteQueryResult(TrkSqliteStatement* Statement)
-	: statement(Statement)
+TrkSqlite::TrkDatabaseException::TrkDatabaseException(struct sqlite3* Database)
+	: std::runtime_error(sqlite3_errmsg(Database))
+	, errcode(sqlite3_errcode(Database))
+	, errextndcode(sqlite3_extended_errcode(Database))
 { }
 
-TrkSqliteQueryResult::~TrkSqliteQueryResult()
+TrkSqlite::TrkDatabase::TrkDatabase(const TrkString Filename, const int Flags)
 {
-	if (statement)
+	sqlite3* handle;
+	const int ret = sqlite3_open_v2(Filename, &handle, Flags, nullptr);
+	sqlite_db.reset(handle);
+	if (SQLITE_OK != ret)
 	{
-		delete statement;
+		throw TrkSqlite::TrkDatabaseException(handle, ret);
 	}
 }
 
-bool TrkSqliteQueryResult::Next()
+void TrkSqlite::TrkDatabase::Deleter::operator()(sqlite3* SQLite)
 {
-	return statement->Step() == SQLITE_ROW;
-}
+	const int ret = sqlite3_close(SQLite);
 
-bool TrkSqliteQueryResult::IsValid() const
-{
-	return statement != nullptr;
-}
+	// Avoid unreferenced variable warning when build in release mode
+	(void)ret;
 
-TrkString TrkSqliteQueryResult::GetString(int ColumnIndex) const
-{
-	return TrkString(statement->GetText(ColumnIndex));
-}
-
-int TrkSqliteQueryResult::GetInt(int ColumnIndex) const
-{
-	return statement->GetInt(ColumnIndex);
-}
-
-double TrkSqliteQueryResult::GetDouble(int ColumnIndex) const
-{
-	return statement->GetDouble(ColumnIndex);
-}
-
-TrkSqliteDB::TrkSqliteDB(TrkString DatabasePath)
-	: database(nullptr)
-{ 
-	int rc = sqlite3_open_v2(DatabasePath, &database, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, nullptr);
-	if (rc != SQLITE_OK)
+	if (TrkSqlite::OK != ret)
 	{
-		std::cerr << "Cannot open database: " << sqlite3_errmsg(database) << std::endl;
-		database = nullptr;
+		throw TrkSqlite::TrkDatabaseException("Database is locked", ret);
 	}
 }
 
-TrkSqliteDB::~TrkSqliteDB()
+int TrkSqlite::TrkDatabase::Execute(TrkString Queries)
 {
-	if (database)
+	const int ret = TryExecute(Queries);
+
+	if (TrkSqlite::OK != ret)
 	{
-		sqlite3_close(database);
+		throw TrkSqlite::TrkDatabaseException(sqlite_db.get(), ret);
+	}
+
+	return sqlite3_changes(sqlite_db.get());
+}
+
+int TrkSqlite::TrkDatabase::TryExecute(TrkString Queries)
+{
+	return sqlite3_exec(sqlite_db.get(), Queries, nullptr, nullptr, nullptr);
+}
+
+bool TrkSqlite::TrkDatabase::TableExists(TrkString TableName) const
+{
+	TrkStatement query(*this, "SELECT count(*) FROM sqlite_master WHERE type='table' AND name=?");
+	query.Bind(1, TableName);
+	(void)query.ExecuteStep();
+	return query.GetColumn(0).GetInt() == 1;
+}
+
+int64_t TrkSqlite::TrkDatabase::GetLastInsertRowID() const
+{
+	return sqlite3_last_insert_rowid(sqlite_db.get());
+}
+
+int TrkSqlite::TrkDatabase::GetChanges() const
+{
+	return sqlite3_changes(sqlite_db.get());
+}
+
+int TrkSqlite::TrkDatabase::GetTotalChanges() const
+{
+	return sqlite3_total_changes(sqlite_db.get());
+}
+
+int TrkSqlite::TrkDatabase::GetErrorCode() const
+{
+	return sqlite3_errcode(sqlite_db.get());
+}
+
+int TrkSqlite::TrkDatabase::GetExtendedErrorCode() const
+{
+	return sqlite3_extended_errcode(sqlite_db.get());
+}
+
+TrkSqlite::TrkValue::TrkValue(const TrkStatement::TrkSharedStatementPtr& StatementPtr, int Index)
+	: statement_ptr(StatementPtr)
+	, index(Index)
+{
+	if (!StatementPtr)
+	{
+		throw TrkDatabaseException("Statement was destroyed");
 	}
 }
 
-TrkSqliteStatement* TrkSqliteDB::PrepareStatement(TrkString Query)
+const TrkString TrkSqlite::TrkValue::GetName() const
 {
-	sqlite3_stmt* stmt = nullptr;
-	int rc = sqlite3_prepare_v2(database, Query, -1, &stmt, nullptr);
-	if (rc != SQLITE_OK)
-	{
-		std::cerr << "Cannot prepare statement: " << sqlite3_errmsg(database) << std::endl;
-		return nullptr;
-	}
-
-	return new TrkSqliteStatement(stmt);
+	return sqlite3_column_name(statement_ptr.get(), index);
 }
 
-TrkSqliteValue TrkSqliteDB::ExecuteScalar(TrkString Query)
+int TrkSqlite::TrkValue::GetType() const
 {
-	TrkSqliteStatement* stmt = PrepareStatement(Query);
-	if (stmt)
+	return sqlite3_column_type(statement_ptr.get(), index);
+}
+
+int32_t TrkSqlite::TrkValue::GetInt() const
+{
+	return sqlite3_column_int(statement_ptr.get(), index);
+}
+
+uint32_t TrkSqlite::TrkValue::GetUInt() const
+{
+	return static_cast<unsigned>(GetInt64());
+}
+
+int64_t TrkSqlite::TrkValue::GetInt64() const
+{
+	return sqlite3_column_int64(statement_ptr.get(), index);
+}
+
+double TrkSqlite::TrkValue::GetDouble() const
+{
+	return sqlite3_column_double(statement_ptr.get(), index);
+}
+
+TrkString TrkSqlite::TrkValue::GetString() const
+{
+	auto Text = reinterpret_cast<const char*>(sqlite3_column_text(statement_ptr.get(), index));
+	return Text ? TrkString(Text) : TrkString("");
+}
+
+const void* TrkSqlite::TrkValue::GetBlob() const
+{
+	return sqlite3_column_blob(statement_ptr.get(), index);
+}
+
+int TrkSqlite::TrkValue::GetBytes() const
+{
+	return sqlite3_column_bytes(statement_ptr.get(), index);
+}
+
+TrkSqlite::TrkStatement::TrkStatement(const TrkDatabase& Database, TrkString Query)
+	: query(Query)
+	, sqlite_db(Database.sqlite_db.get())
+	, prepared_statement(PrepareStatement())
+{
+	column_count = sqlite3_column_count(prepared_statement.get());
+}
+
+bool TrkSqlite::TrkStatement::ExecuteStep()
+{
+	const int ret = TryExecuteStep();
+	if (SQLITE_ROW != ret && SQLITE_DONE != ret)
 	{
-		if (stmt->Step() == SQLITE_ROW)
+		if (ret == sqlite3_errcode(sqlite_db))
 		{
-			return TrkSqliteValue(stmt, 0);
+			throw TrkDatabaseException(sqlite_db, ret);
+		}
+		else
+		{
+			throw TrkDatabaseException("Statement needs to be reseted", ret);
 		}
 	}
 
-	return TrkSqliteValue(nullptr, -1);
+	return has_row;
 }
 
-int TrkSqliteDB::ExecuteNonQuery(TrkString Query)
+int TrkSqlite::TrkStatement::TryExecuteStep()
 {
-	TrkSqliteStatement* stmt = PrepareStatement(Query);
-	if (stmt)
+	if (done)
 	{
-		return stmt->Step();
+		// Statement needs to be reseted
+		return SQLITE_MISUSE;
 	}
 
-	return SQLITE_ERROR;
-}
-
-TrkSqliteQueryResult TrkSqliteDB::ExecuteReader(TrkString Query)
-{
-	TrkSqliteStatement* stmt = PrepareStatement(Query);
-	return TrkSqliteQueryResult(stmt);
-}
-
-int TrkSqliteDB::ExecuteInsert(TrkString Query)
-{
-	TrkSqliteStatement* stmt = PrepareStatement(Query);
-	if (stmt)
+	const int ret = sqlite3_step(prepared_statement.get());
+	if (SQLITE_ROW == ret)
 	{
-		if (stmt->Step() == SQLITE_DONE)
+		has_row = true;
+	}
+	else
+	{
+		has_row = false;
+		done = SQLITE_DONE == ret;
+	}
+
+	return ret;
+}
+
+int TrkSqlite::TrkStatement::Execute()
+{
+	const int ret = TryExecuteStep();
+	if (SQLITE_DONE != ret)
+	{
+		if (SQLITE_ROW == ret)
 		{
-			return sqlite3_last_insert_rowid(database);
+			throw TrkDatabaseException("Execute() does not expect results. Use ExecuteStep().");
+		}
+		else if (ret == sqlite3_errcode(sqlite_db))
+		{
+			throw TrkDatabaseException(sqlite_db, ret);
+		}
+		else
+		{
+			throw TrkDatabaseException("Statement needs to be reseted", ret);
 		}
 	}
 
-	return -1;
+	return sqlite3_changes(sqlite_db);
 }
 
-int TrkSqliteDB::ExecuteDelete(TrkString Query)
+void TrkSqlite::TrkStatement::Reset()
 {
-	TrkSqliteStatement* stmt = PrepareStatement(Query);
-	if (stmt)
+	const int ret = TryReset();
+
+	if (SQLITE_OK != ret)
 	{
-		if (stmt->Step() == SQLITE_DONE)
+		throw TrkDatabaseException(sqlite_db, ret);
+	}
+}
+
+int TrkSqlite::TrkStatement::TryReset()
+{
+	has_row = false;
+	done = false;
+	return sqlite3_reset(prepared_statement.get());
+}
+
+void TrkSqlite::TrkStatement::ClearBindings()
+{
+	const int ret = sqlite3_clear_bindings(GetPreparedStatement());
+	
+	if (SQLITE_OK != ret)
+	{
+		throw TrkDatabaseException(sqlite_db, ret);
+	}
+}
+
+int TrkSqlite::TrkStatement::GetIndex(const TrkString Name) const
+{
+	return sqlite3_bind_parameter_index(GetPreparedStatement(), Name);
+}
+
+int TrkSqlite::TrkStatement::GetChanges() const
+{
+	return sqlite3_changes(sqlite_db);
+}
+
+bool TrkSqlite::TrkStatement::HasRow() const
+{
+	return has_row;
+}
+
+bool TrkSqlite::TrkStatement::Done() const
+{
+	return done;
+}
+
+const TrkString TrkSqlite::TrkStatement::GetQuery() const
+{
+	return query;
+}
+
+const TrkString TrkSqlite::TrkStatement::GetExpandedQuery() const
+{
+	auto expanded = sqlite3_expanded_sql(GetPreparedStatement());
+	TrkString expandedStr(strdup(expanded));
+	sqlite3_free(expanded);
+	return expandedStr;
+}
+
+void TrkSqlite::TrkStatement::Bind(const int Index, const int32_t Value)
+{
+	const int ret = sqlite3_bind_int(GetPreparedStatement(), Index, Value);
+
+	if (SQLITE_OK != ret)
+	{
+		throw TrkDatabaseException(sqlite_db, ret);
+	}
+}
+
+void TrkSqlite::TrkStatement::Bind(const int Index, const uint32_t Value)
+{
+	const int ret = sqlite3_bind_int64(GetPreparedStatement(), Index, Value);
+
+	if (SQLITE_OK != ret)
+	{
+		throw TrkDatabaseException(sqlite_db, ret);
+	}
+}
+
+void TrkSqlite::TrkStatement::Bind(const int Index, const int64_t Value)
+{
+	const int ret = sqlite3_bind_int64(GetPreparedStatement(), Index, Value);
+
+	if (SQLITE_OK != ret)
+	{
+		throw TrkDatabaseException(sqlite_db, ret);
+	}
+}
+
+void TrkSqlite::TrkStatement::Bind(const int Index, const double Value)
+{
+	const int ret = sqlite3_bind_double(GetPreparedStatement(), Index, Value);
+
+	if (SQLITE_OK != ret)
+	{
+		throw TrkDatabaseException(sqlite_db, ret);
+	}
+}
+
+void TrkSqlite::TrkStatement::Bind(const int Index, const TrkString Value)
+{
+	const int ret = sqlite3_bind_text(GetPreparedStatement(), Index, (const char*)Value, Value.size(), SQLITE_TRANSIENT);
+
+	if (SQLITE_OK != ret)
+	{
+		throw TrkDatabaseException(sqlite_db, ret);
+	}
+}
+
+void TrkSqlite::TrkStatement::Bind(const int Index, const void* Value, const int Size)
+{
+	const int ret = sqlite3_bind_blob(GetPreparedStatement(), Index, Value, Size, SQLITE_TRANSIENT);
+
+	if (SQLITE_OK != ret)
+	{
+		throw TrkDatabaseException(sqlite_db, ret);
+	}
+}
+
+void TrkSqlite::TrkStatement::Bind(const int Index)
+{
+	const int ret = sqlite3_bind_null(GetPreparedStatement(), Index);
+
+	if (SQLITE_OK != ret)
+	{
+		throw TrkDatabaseException(sqlite_db, ret);
+	}
+}
+
+TrkSqlite::TrkValue TrkSqlite::TrkStatement::GetColumn(const int Index) const
+{
+	CheckRow();
+	CheckIndex(Index);
+	return TrkValue(prepared_statement, Index);
+}
+
+TrkSqlite::TrkValue TrkSqlite::TrkStatement::GetColumn(const TrkString Name) const
+{
+	CheckRow();
+	const int index = GetColumnIndex(Name);
+	return TrkValue(prepared_statement, index);
+}
+
+TrkString TrkSqlite::TrkStatement::GetColumnName(const int Index) const
+{
+	CheckIndex(Index);
+	return sqlite3_column_name(GetPreparedStatement(), Index);
+}
+
+bool TrkSqlite::TrkStatement::IsColumnNull(const int Index) const
+{
+	CheckRow();
+	CheckIndex(Index);
+	return SQLITE_NULL == sqlite3_column_type(GetPreparedStatement(), Index);
+}
+
+bool TrkSqlite::TrkStatement::IsColumnNull(const TrkString Name) const
+{
+	CheckRow();
+	const int index = GetColumnIndex(Name);
+	return SQLITE_NULL == sqlite3_column_type(GetPreparedStatement(), index);
+}
+
+int TrkSqlite::TrkStatement::GetColumnCount() const
+{
+	return column_count;
+}
+
+int TrkSqlite::TrkStatement::GetColumnIndex(const TrkString Name) const
+{
+	if (column_names.Size() <= 0)
+	{
+		for (int i = 0; i < column_count; i++)
 		{
-			return sqlite3_changes(database);
+			TrkString ColumnName = sqlite3_column_name(GetPreparedStatement(), i);
+			column_names.Insert(new TrkMapValue(ColumnName, (void*)&i, INTEGER));
 		}
 	}
 
-	return -1;
-}
-
-int TrkSqliteDB::ExecuteUpdate(TrkString Query)
-{
-	TrkSqliteStatement* stmt = PrepareStatement(Query);
-	if (stmt)
+	const auto Elem = column_names.Find(Name);
+	if (Elem == nullptr)
 	{
-		if (stmt->Step() == SQLITE_DONE)
-		{
-			return sqlite3_changes(database);
-		}
+		throw TrkDatabaseException("Unknown column name.");
 	}
 
-	return -1;
+	return Elem->GetInt();
 }
 
-void TrkSqliteDB::BeginTransaction()
+int TrkSqlite::TrkStatement::GetErrorCode() const
 {
-	ExecuteNonQuery("BEGIN TRANSACTON");
+	return sqlite3_errcode(sqlite_db);
 }
 
-void TrkSqliteDB::RollbackTransaction()
+int TrkSqlite::TrkStatement::GetExtendedErrorCode() const
 {
-	ExecuteNonQuery("ROLLBACK TRANSACTON");
+	return sqlite3_extended_errcode(sqlite_db);
 }
 
-void TrkSqliteDB::CommitTransaction()
+void TrkSqlite::TrkStatement::CheckRow() const
 {
-	ExecuteNonQuery("COMMIT");
+	if (!has_row)
+	{
+		throw TrkSqlite::TrkDatabaseException("No row to get a column from. ExecuteStep() was not called, or returned false.");
+	}
+}
+
+void TrkSqlite::TrkStatement::CheckIndex(const int Index) const
+{
+	if (Index < 0 || Index >= column_count)
+	{
+		throw TrkSqlite::TrkDatabaseException("Column index out of range.");
+	}
+}
+
+TrkSqlite::TrkStatement::TrkSharedStatementPtr TrkSqlite::TrkStatement::PrepareStatement()
+{
+	sqlite3_stmt* statement;
+	const int ret = sqlite3_prepare_v2(sqlite_db, query, query.size(), &statement, nullptr);
+	if (SQLITE_OK != ret)
+	{
+		throw TrkDatabaseException(sqlite_db, ret);
+	}
+	return TrkStatement::TrkSharedStatementPtr(statement, [](sqlite3_stmt* stmt)
+		{
+			sqlite3_finalize(stmt);
+		});
+}
+
+sqlite3_stmt* TrkSqlite::TrkStatement::GetPreparedStatement() const
+{
+	sqlite3_stmt* ret = prepared_statement.get();
+	if (ret)
+	{
+		return ret;
+	}
+	throw TrkDatabaseException("Statement was not prepared.");
+}
+
+TrkSqlite::TrkTransaction::TrkTransaction(TrkDatabase& Database)
+	: database(Database)
+{
+	database.Execute("BEGIN TRANSACTION");
+}
+
+
+TrkSqlite::TrkTransaction::~TrkTransaction()
+{
+	if (!Commited)
+	{
+		try
+		{
+			database.Execute("ROLLBACK TRANSACTION");
+		}
+		catch (TrkDatabaseException&)
+		{
+			// Never throw an exception in a destructor
+		}
+	}
+}
+
+void TrkSqlite::TrkTransaction::Commit()
+{
+	if (!Commited)
+	{
+		database.Execute("COMMIT TRANSACTION");
+		Commited = true;
+	}
+	else
+	{
+		throw TrkDatabaseException("Transaction already committed.");
+	}
+}
+
+void TrkSqlite::TrkTransaction::Rollback()
+{
+	if (!Commited)
+	{
+		database.Execute("ROLLBACK TRANSACTION");
+		Commited = true;
+	}
+	else
+	{
+		throw TrkDatabaseException("Transaction already committed.");
+	}
 }

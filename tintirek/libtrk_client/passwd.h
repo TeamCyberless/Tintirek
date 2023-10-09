@@ -17,6 +17,7 @@ class TrkPasswdHelper
 public:
 	static bool CheckSessionFileExists();
 	static bool SaveSessionTicket(TrkString Ticket, TrkString ServerUrl);
+	static bool ChangeSessionTicket(TrkString Ticket, TrkString ServerUrl);
 	static TrkString GetSessionTicketByServerURL(TrkString ServerUrl);
 };
 

@@ -128,7 +128,7 @@ public:
 	/*	Disconnects client */
 	virtual void Disconnect(TrkClientInfo* client_info);
 	/*	Process authentication */
-	virtual bool Authenticate(TrkClientInfo* client_info, TrkString& error_msg);
+	virtual bool Authenticate(TrkClientInfo* client_info, TrkString& error_msg, bool retry = false);
 	/*  Handles clients by iteration */
 	virtual bool HandleConnectionMultiple(TrkClientInfo* client_info, TrkString& error_str);
 	/*	Handle commands */

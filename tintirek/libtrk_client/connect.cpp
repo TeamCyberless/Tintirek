@@ -436,9 +436,9 @@ bool TrkConnectHelper::Disconnect_Internal(TrkSSLCTX* ssl_context, TrkSSL* ssl_c
 	return true;
 }
 
-bool TrkConnectHelper::Authenticate_Internal(class TrkCliClientOptionResults* opt_result, TrkSSL* ssl_connection, int client_socket, TrkString& error_msg)
+bool TrkConnectHelper::Authenticate_Internal(class TrkCliClientOptionResults* opt_result, TrkSSL* ssl_connection, int client_socket, TrkString& error_msg, bool retry)
 {
-	TrkString auth = "", ticket, errmsg, result;
+	TrkString auth = "", ticket = "", errmsg, result;
 	auth << "Username="
 		<< opt_result->username
 		<< ";";
@@ -446,20 +446,24 @@ bool TrkConnectHelper::Authenticate_Internal(class TrkCliClientOptionResults* op
 	if (TrkPasswdHelper::CheckSessionFileExists())
 	{
 		ticket = TrkPasswdHelper::GetSessionTicketByServerURL(opt_result->server_url);
-		if (ticket != "")
+		if (ticket.size() > 0 && !retry)
 		{
 			auth << "Ticket="
 				<< ticket;
 		}
+		else
+		{
+			std::cout << "Enter Password: ";
+			std::string input;
+			std::getline(std::cin, input);
+			TrkString passwd(input.c_str());
+
+			auth << "Password="
+				<< TrkCryptoHelper::SHA256(passwd);
+		}
 	}
 
-	std::cout << "Enter Password: ";
-	std::string input;
-	std::getline(std::cin, input);
-	TrkString passwd(input.c_str());
-
-	auth << "Password="
-		<< TrkCryptoHelper::SHA256(passwd);
+	std::cout << auth << std::endl;
 
 	if (!SendPacket(ssl_connection, client_socket, auth, errmsg))
 	{
@@ -478,9 +482,26 @@ bool TrkConnectHelper::Authenticate_Internal(class TrkCliClientOptionResults* op
 
 	if (firstLine == "OK")
 	{
-		/*TrkString ticket = result.substr(firstNewlinePos + 1);
-		TrkPasswdHelper::SaveSessionTicket(ticket, opt_result->server_url);*/
+		if (result != "OK\n")
+		{
+			TrkString newticket = result.substr(firstNewlinePos + 1);
+			if (ticket != newticket && ticket != "")
+			{
+				TrkPasswdHelper::ChangeSessionTicket(newticket, opt_result->server_url);
+			}
+			else
+			{
+				TrkPasswdHelper::SaveSessionTicket(newticket, opt_result->server_url);
+			}
+		}
 		return true;
+	}
+	else if (firstLine == "ERROR" && ticket != "" && !retry)
+	{
+		if (result.substr(firstNewlinePos + 1) == "Ticket Invalid")
+		{
+			return Authenticate_Internal(opt_result, ssl_connection, client_socket, error_msg, true);
+		}
 	}
 
 	error_msg = "Authentication failed: Login failed.";

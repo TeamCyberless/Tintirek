@@ -56,12 +56,15 @@ func main() {
 		fmt.Println(err)
 		return
 	}
+	fmt.Println("Passwd hashed:", passwd)
 	for i := 0; i < *iterationcount; i++ {
+		fmt.Printf("Passwd hash info %d: %s\n", i, passwd + "::" + saltVal)
 		passwd, err = SHA256(passwd + "::" + saltVal)
 		if err != nil {
 			fmt.Println(err)
 			return
 		}
+		fmt.Printf("Passwd hashed with salt %d: %s\n", i, passwd)
 	}
 	fmt.Println("Passwd:", passwd)
 

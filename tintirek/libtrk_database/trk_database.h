@@ -18,8 +18,14 @@ TRK_VERSION_DEFINE(TrkDatabaseVerVar, "trk_database");
 /* Initialization function for databases */
 void InitDatabases(TrkString rootDir);
 
-/* Get user from database */
-TrkSqliteQueryResult GetUserFromDB(TrkString username, TrkString query = "*");
+/* Get user password information from database */
+bool GetUserPasswdFromDB(TrkString username, TrkString& passwd, TrkString& salt, int& iteration);
+
+/* Get user ticket information from database */
+bool GetUserTicketFromDB(TrkString username, TrkString& ticket, int64_t& endtimeunix);
+
+/* Update user ticket also with ticket time */
+bool UpdateUserTicketDB(TrkString username, TrkString ticket);
 
 
 #endif /* TRK_DATABASE_H */

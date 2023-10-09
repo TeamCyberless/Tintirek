@@ -77,7 +77,7 @@ void TrkServer::Disconnect(TrkClientInfo* client_info)
 	RemoveFromList(client_info);
 }
 
-bool TrkServer::Authenticate(TrkClientInfo* client_info, TrkString& error_msg)
+bool TrkServer::Authenticate(TrkClientInfo* client_info, TrkString& error_msg, bool retry)
 {
 	TrkString error_str, message, username, passwd;
 	bool ticketauth = false;
@@ -88,7 +88,12 @@ bool TrkServer::Authenticate(TrkClientInfo* client_info, TrkString& error_msg)
 
 	while (message.size() > 0)
 	{
-		size_t pos = (message.find(";") != TrkString::npos ? message.find(";") : message.size() - 1);
+		size_t pos = message.find(";");
+		if (pos == TrkString::npos)
+		{
+			pos = message.size();
+		}
+
 		const TrkString token = message.substr(0, pos);
 		size_t equalPos = token.find("=");
 		if (equalPos != TrkString::npos)
@@ -116,32 +121,74 @@ bool TrkServer::Authenticate(TrkClientInfo* client_info, TrkString& error_msg)
 
 	if (username != "" && (!ticketauth || passwd != ""))
 	{
-		TrkSqliteQueryResult user = GetUserFromDB(username, "password_hash, salt, iteration");
-		if (user.IsValid())
+		if (!ticketauth)
 		{
-			if (!ticketauth)
+			int db_itr;
+			TrkString db_passwd, db_salt;
+			if (GetUserPasswdFromDB(username, db_passwd, db_salt, db_itr))
 			{
-				const TrkString password_hashed = user.GetString(5);
-				const TrkString salt = user.GetString(6);
-				int iteration = user.GetInt(7);
-
 				TrkString val = passwd;
-				for (int i = 0; i < iteration; i++)
+				for (int i = 0; i < db_itr; i++)
 				{
-					TrkString need_crypt;
-					need_crypt << val << "::" << salt;
-					val = TrkCryptoHelper::SHA256(need_crypt);
+					val = TrkCryptoHelper::SHA256(val + "::" + db_salt);
 				}
 
-				if (val == password_hashed)
+				if (val == db_passwd)
 				{
-					TrkString str = "OK\n123456789ABCDEF";
-					if (!SendPacket(client_info, message, error_msg))
+					TrkString newTicket = "Tintirek::";
+					newTicket << TRK_VERSION << "::";
+					newTicket << static_cast<int64_t>(std::chrono::system_clock::to_time_t(std::chrono::system_clock::now())) << "::";
+					newTicket << db_passwd << "::";
+					newTicket << "EndOfTicket";
+
+					newTicket = TrkCryptoHelper::SHA256(newTicket, ":");
+					if (UpdateUserTicketDB(username, newTicket))
 					{
-						return false;
+						TrkString str = "OK\n";
+						str << newTicket;
+						if (!SendPacket(client_info, str, error_msg))
+						{
+							return false;
+						}
+						return true;
 					}
-					return true;
+
+					error_msg << "Something went wrong with updating ticket value. This should not have happened.";
+					return false;
 				}
+			}
+		}
+		else
+		{
+			int64_t db_ticket_endtime;
+			TrkString db_ticket;
+			if (GetUserTicketFromDB(username, db_ticket, db_ticket_endtime))
+			{
+				if (db_ticket == passwd)
+				{
+					int64_t unix_ticket_end = static_cast<int64_t>(std::chrono::system_clock::to_time_t(std::chrono::system_clock::now()));
+					if (unix_ticket_end < db_ticket_endtime)
+					{
+						TrkString str = "OK\n";
+						if (!SendPacket(client_info, str, error_msg))
+						{
+							return false;
+						}
+						return true;
+					}
+				}
+
+				TrkString str = "ERROR\nTicket Invalid";
+				if (!SendPacket(client_info, str, error_msg))
+				{
+					return false;
+				}
+				if (retry)
+				{
+					error_msg = "Retry count exceeded.";
+					return false;
+				}
+				return Authenticate(client_info, error_msg, true);
 			}
 		}
 

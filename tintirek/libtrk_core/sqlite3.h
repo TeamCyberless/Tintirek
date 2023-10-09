@@ -7,134 +7,336 @@
 #ifndef TRK_SQLITE3_H
 #define TRK_SQLITE3_H
 
-
-#define SQLITE_OMIT_DEPRECATED 1
-#define SQLITE_DEFAULT_MEMSTATUS 0
-#define SQLITE_OMIT_WAL 1
-
-#include "../../deps/sqlite-amalgamation/sqlite3.h"
-
 #include "trk_types.h"
 
+/* Forward declarations to avoid inclusion of sqlite3 in this header */
+struct sqlite3;
+struct sqlite3_stmt;
+struct sqlite3_context;
+struct sqlite3_value;
 
-/* Represents an SQLite statement and provides methods to execute and retrieve results */
-class TrkSqliteStatement
+
+namespace TrkSqlite
 {
-public:
-	TrkSqliteStatement(sqlite3_stmt* Statement);
-	~TrkSqliteStatement();
+	/// There's some annoying LNK problems. This should be fix but not be professional
+	const int OPEN_READONLY = 0x00000001;
+	const int OPEN_READWRITE = 0x00000002;
+	const int OPEN_CREATE = 0x00000004;
+	const int OPEN_URI = 0x00000040;
+	const int OPEN_MEMORY = 0x00000080;
+	const int OPEN_NOMUTEX = 0x00008000;
+	const int OPEN_FULLMUTEX = 0x00010000;
+	const int OPEN_SHAREDCACHE = 0x00020000;
+	const int OPEN_NOFOLLOW = 0x01000000;
+	const int OK = 0;
 
-	/* Execute the statement */
-	int Step();
-	/* Reset the statement for re-execution */
-	void Reset();
+	const int INTEGER = 1;
+	const int FLOAT = 2;
+	const int TEXT = 3;
+	const int BLOB = 4;
+	const int Null = 5;
 
-	/* Implicit conversion operator to retrieve the underlying SQLite statement */
-	operator sqlite3_stmt* () const;
-
-	/* Bind a text value to the specified parameter index */
-	void BindText(int Index, TrkString Text);
-	/* Bind an integer value to the specified parameter index */
-	void BindInt(int Index, int Value);
-	/* Bind a double value to the specified parameter index */
-	void BindDouble(int Index, double Value);
-	/* Bind a null value to the specified parameter index */
-	void BindNull(int Index);
-
-	/* Get the text value from the specified result column */
-	TrkString GetText(int Index) const;
-	/* Get the integer value from the specified result column */
-	int GetInt(int Index) const;
-	/* Get the double value from the specified result column */
-	double GetDouble(int Index) const;
-
-private:
-	sqlite3_stmt* statement;
-};
+	/* Returns SQLite version string */
+	TrkString GetLibVersion();
+	/* Returns SQLite version string */
+	int GetLibVersionNumber();
 
 
-/* Represents a single value from an SQLite query result */
-class TrkSqliteValue
-{
-public:
-	TrkSqliteValue(TrkSqliteStatement* Statement, int ColumnIndex);
-
-	/* Returns true if statement is valid */
-	bool IsValid() const;
-
-	/* Get the data type of the value */
-	int GetType() const;
-	/* Get the text representation of the value */
-	TrkString GetText() const;
-	/* Get the integer value */
-	int GetInt() const;
-	/* Get the double value */
-	double GetDouble() const;
-
-private:
-	TrkSqliteStatement* statement;
-	int column_index;
-};
+	/* Exception class for error messages generated from SQLite3 */
+	class TrkDatabaseException : public std::runtime_error
+	{
+	public:
+		TrkDatabaseException(const TrkString ErrorMessage, int ReturnValue);
+		TrkDatabaseException(sqlite3* Database, int ReturnValue);
+		explicit TrkDatabaseException(const TrkString ErrorMessage) : TrkDatabaseException(ErrorMessage, -1) {}
+		explicit TrkDatabaseException(sqlite3* Database);
 
 
-/* Represents the result of an SQLite query */
-class TrkSqliteQueryResult
-{
-public:
-	TrkSqliteQueryResult(TrkSqliteStatement* Statement);
-	~TrkSqliteQueryResult();
+		/* Returns the error code (if there's any, otherwise will return -1) */
+		int GetErrorCode() const { return errcode; }
+		/* Returns the extended error code (if there's any, otherwise will return -1) */
+		int GetExtendedErrorCode() const { return errextndcode; }
 
-	/* Move to the next row in the result set */
-	bool Next();
-	/* Returns true if statement is valid */
-	bool IsValid() const;
+	private:
+		/* Error code value */
+		int errcode;
+		/* Extended error code value */
+		int errextndcode;
+	};
 
-	/* Get the string value from the specified column in the current row */
-	TrkString GetString(int ColumnIndex) const;
-	/* Get the integer value from the specified column in the current row */
-	int GetInt(int ColumnIndex) const;
-	/* Get the double value from the specified column in the current row */
-	double GetDouble(int ColumnIndex) const;
+	/* Tintirek's Database Class */
+	class TrkDatabase
+	{
+		friend class TrkStatement;
 
-private:
-	TrkSqliteStatement* statement;
-};
+	public:
+		/* Opens the database from provided filename */
+		TrkDatabase(const TrkString Filename, const int Flags = TrkSqlite::OPEN_READONLY);
+
+		/* Disables copy and allows moving */
+		TrkDatabase(const TrkDatabase&) = delete;
+		TrkDatabase& operator=(const TrkDatabase&) = delete;
+		TrkDatabase(TrkDatabase&& Database) = default;
+		TrkDatabase& operator=(TrkDatabase&& Database) = default;
+
+		/* Deleter functor to use with smart pointers to close the SQLite database connection */
+		struct Deleter
+		{
+			void operator()(sqlite3* SQLite);
+		};
+
+		
+		/* Shortcut to execute statements without results. Returns the number of changes */
+		int Execute(TrkString Queries);
+		/* Try to execute statements, returning the sqlite result code */
+		int TryExecute(TrkString Queries);
 
 
-/* Represents an SQLite database and provides methods for database operations */
-class TrkSqliteDB
-{
-public:
-	TrkSqliteDB(TrkString DatabasePath);
-	~TrkSqliteDB();
+		/* Returns true if a table exists */
+		bool TableExists(TrkString TableName) const;
+		/* Get the row ID of the most recent successful INSERT into the database from the current connection */
+		int64_t GetLastInsertRowID() const;
+		/* Get number of rows. Modified by last INSERT, UPDATE or DELETE statement (except DROP) */
+		int GetChanges() const;
+		/* Get total number of rows. Modified by all INSERT, UPDATE or DELETE statement since connection (except DROP) */
+		int GetTotalChanges() const;
+		/* Get the numeric result of error code (if any) */
+		int GetErrorCode() const;
+		/* Get the extended numeric result of error code (if any) */
+		int GetExtendedErrorCode() const;
 
-	/* Prepare an SQL statement for execution */
-	TrkSqliteStatement* PrepareStatement(TrkString Query);
+	private:
+		/* Pointer to SQLite database connection */
+		std::unique_ptr<sqlite3, Deleter> sqlite_db;
+	};
 
-	/* Execute an SQL query and return a single value */
-	TrkSqliteValue ExecuteScalar(TrkString Query);
+	/* Tintirek's Database Statement Class */
+	class TrkStatement
+	{
+	public:
+		TrkStatement(const TrkDatabase& Database, TrkString Query);
+		~TrkStatement() = default;
 
-	/* Execute a non-query SQL statement (e.g., INSERT, DELETE) and return the affected row count */
-	int ExecuteNonQuery(TrkString Query);
-	/* Execute an SQL query and return a query result */
-	TrkSqliteQueryResult ExecuteReader(TrkString Query);
-	/* Execute an INSERT statement and return the last inserted row ID */
-	int ExecuteInsert(TrkString Query);
-	/* Execute a DELETE statement and return the affected row count */
-	int ExecuteDelete(TrkString Query);
-	/* Execute an UPDATE statement and return the affected row count */
-	int ExecuteUpdate(TrkString Query);
+		/* Disables copy and allows moving */
+		TrkStatement(const TrkStatement&) = delete;
+		TrkStatement& operator=(const TrkStatement&) = delete;
+		TrkStatement(TrkStatement&& Database);
+		TrkStatement& operator=(TrkStatement&& Database) = default;
 
-	/* Begin an SQLite transaction */
-	void BeginTransaction();
-	/* Rollback an SQLite transaction */
-	void RollbackTransaction();
-	/* Commit an SQLite transaction */
-	void CommitTransaction();
+		/* Execute a step of the prepared query to fetch one row of results */
+		bool ExecuteStep();
+		/* Try to execute a step of the prepared query to fetch one row of results */
+		int TryExecuteStep();
+		/* Execute a one-step query with no expected result and return the number of changes */
+		int Execute();
+		/* Reset the statement to make it ready for a new execution */
+		void Reset();
+		/* Try reset the statement. Returns the result code */
+		int TryReset();
 
-private:
-	sqlite3* database;
-};
+		/* Clears away all the bindings of a prepared statement */
+		void ClearBindings();
+		/* Returns index from given name */
+		int GetIndex(const TrkString Name) const;
+		/* Get number of rows modified by last INSERT, UPDATE or DELETE (except DROP) */
+		int GetChanges() const;
+		/* True when a row has been fetched with ExecuteStep, false otherwise */
+		bool HasRow() const;
+		/* True when the last ExecuteStep had no more row to fetch */
+		bool Done() const;
+		/* Returns the SQL query */
+		const TrkString GetQuery() const;
+		/* Returns a string containing the SQL query of prepared statement with bound parameters expanded */
+		const TrkString GetExpandedQuery() const;
 
+		/* Bind an 32 bits signed int value to a parameter */
+		void Bind(const int Index, const int32_t Value);
+		/* Bind a 32 bits unsigned int value to a parameter */
+		void Bind(const int Index, const uint32_t Value);
+		/* Bind a 64 bits signed int value to a parameter */
+		void Bind(const int Index, const int64_t Value);
+		/* Bind a 64 bits float value to a parameter */
+		void Bind(const int Index, const double Value);
+		/* Bind a string value to a parameter */
+		void Bind(const int Index, const TrkString Value);
+		/* Bind a binary blob value to a parameter */
+		void Bind(const int Index, const void* Value, const int Size);
+		/* Bind a null value to a parameter */
+		void Bind(const int Index);
+
+		/* Bind an 32 bits signed int value to a named parameter */
+		void Bind(const TrkString Name, const int32_t Value) { Bind(GetIndex(Name), Value); }
+		/* Bind a 32 bits unsigned int value to a named parameter */
+		void Bind(const TrkString Name, const uint32_t Value) { Bind(GetIndex(Name), Value); }
+		/* Bind a 64 bits signed int value to a named parameter */
+		void Bind(const TrkString Name, const int64_t Value) { Bind(GetIndex(Name), Value); }
+		/* Bind a 64 bits float value to a named parameter */
+		void Bind(const TrkString Name, const double Value) { Bind(GetIndex(Name), Value); }
+		/* Bind a string value to a named parameter */
+		void Bind(const TrkString Name, const TrkString Value) { Bind(GetIndex(Name), Value); }
+		/* Bind a binary blob value to a named parameter */
+		void Bind(const TrkString Name, const void* Value, const int Size) { Bind(GetIndex(Name), Value, Size); }
+		/* Bind a null value to a named parameter */
+		void Bind(const TrkString Name) { Bind(GetIndex(Name)); }
+
+		/* Return a copy of the column data specified by its index */
+		class TrkValue GetColumn(const int Index) const;
+		/* Return a copy of the column data specified by its column name */
+		class TrkValue GetColumn(const TrkString Name) const;
+		/* Returns name of the specified result column */
+		TrkString GetColumnName(const int Index) const;
+		/* Checks if the column value is NULL */
+		bool IsColumnNull(const int Index) const;
+		/* Checks if the column value is NULL */
+		bool IsColumnNull(const TrkString Name) const;
+		/* Returns the number of columns in the result set */
+		int GetColumnCount() const;
+		/* Returns the index of specified column name */
+		int GetColumnIndex(const TrkString Name) const;
+
+		/* Get the numeric result of error code (if any) */
+		int GetErrorCode() const;
+		/* Get the extended numeric result of error code (if any) */
+		int GetExtendedErrorCode() const;
+		
+		using TrkSharedStatementPtr = std::shared_ptr<sqlite3_stmt>;
+
+	private:
+		/* Check if there is a row of result returned by ExecuteStep() */
+		void CheckRow() const;
+		/* Check if there is a value index is in ther ange of columns in the result */
+		void CheckIndex(const int Index) const;
+
+		/* Prepare a statement object */
+		TrkSharedStatementPtr PrepareStatement();
+		/* Returns a prepared statement object */
+		sqlite3_stmt* GetPreparedStatement() const;
+
+
+		TrkString query;								// SQL query
+		sqlite3* sqlite_db;								// Pointer to SQLite database connection handle
+		TrkSharedStatementPtr prepared_statement;		// Shared pointer to the prepared SQLite statement object
+		int column_count = 0;							// Number of columns in the result of the prepared statement
+		bool has_row = false;							// True when a row has been fetched with ExecuteStep()
+		bool done = false;								// True when the last ExecuteStep() had no more row to fetch
+		mutable TrkMap column_names;					// Map of columns index by name
+	};
+
+	/* Tintirek's Value Class */
+	class TrkValue
+	{
+	public:
+		TrkValue(const TrkStatement::TrkSharedStatementPtr& StatementPtr, int Index);
+
+
+		/* Returns name of this result */
+		const TrkString GetName() const;
+		/* Return the type of the value */
+		int GetType() const;
+
+		/* Return the 32 bits signed integer value of the column */
+		int32_t GetInt() const;
+		/* Return the 32 bits unsigned integer value of the column */
+		uint32_t GetUInt() const;
+		/* Return the 64 bits integer value of the column */
+		int64_t GetInt64() const;
+		/* Return the 64 bits float value of the column */
+		double GetDouble() const;
+		/* Return the string value of the column */
+		TrkString GetString() const;
+		/* Return the binary blob value of the column */
+		const void* GetBlob() const;
+
+		/* Check if the value is an integer type value */
+		bool IsInt() const { return TrkSqlite::INTEGER == GetType(); }
+		/* Check if the value is an integer type value */
+		bool IsFloat() const { return TrkSqlite::FLOAT == GetType(); }
+		/* Check if the value is an integer type value */
+		bool IsString() const { return TrkSqlite::TEXT == GetType(); }
+		/* Check if the value is an integer type value */
+		bool IsBlob() const { return TrkSqlite::BLOB == GetType(); }
+		/* Check if the value is an integer type value */
+		bool IsNull() const { return TrkSqlite::Null == GetType(); }
+
+		/* Return the number of bytes used by the text (or blob) value of this */
+		int GetBytes() const;
+
+
+		/*
+		 *	Inline casting operators
+		 */
+		operator char() const
+		{
+			return static_cast<char>(GetInt());
+		}
+		operator int8_t() const
+		{
+			return static_cast<int8_t>(GetInt());
+		}
+		operator uint8_t() const
+		{
+			return static_cast<uint8_t>(GetInt());
+		}
+		operator int16_t() const
+		{
+			return static_cast<int16_t>(GetInt());
+		}
+		operator uint16_t() const
+		{
+			return static_cast<uint16_t>(GetInt());
+		}
+		operator int32_t() const
+		{
+			return GetInt();
+		}
+		operator uint32_t() const
+		{
+			return GetUInt();
+		}
+		operator int64_t() const
+		{
+			return GetInt64();
+		}
+		operator double() const
+		{
+			return GetDouble();
+		}
+		operator TrkString() const
+		{
+			return GetString();
+		}
+		operator const void* () const
+		{
+			return GetBlob();
+		}
+
+	private:
+		/* Shared pointer to the prepared SQLite statement object */
+		TrkStatement::TrkSharedStatementPtr statement_ptr;
+		/* Index of the column in the row of result */
+		int index;
+	};
+
+	/* Tintirek's Database Transaction Class */
+	class TrkTransaction
+	{
+	public:
+		TrkTransaction(TrkDatabase& Database);
+		~TrkTransaction();
+
+		/* Disables copy */
+		TrkTransaction(const TrkTransaction&) = delete;
+		TrkTransaction& operator=(const TrkTransaction&) = delete;
+
+		/* Commit the transaction */
+		void Commit();
+		/* Rollback the transaction */
+		void Rollback();
+
+	private:
+		TrkDatabase& database;	// Reference to the SQLite database connection
+		bool Commited;			// True when commit has been called
+	};
+}
 
 #endif /* TRK_SQLITE3_H */

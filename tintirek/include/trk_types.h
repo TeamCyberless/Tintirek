@@ -13,6 +13,7 @@
 #include <cstddef>
 
 #include "trk_string.h"
+#include "trk_map.h"
 
 
 /* Revision number. */

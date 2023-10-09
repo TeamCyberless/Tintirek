@@ -32,7 +32,7 @@ protected:
 	/* Internal code for disconnecting from the server */
 	static bool Disconnect_Internal(TrkSSLCTX* ssl_context, TrkSSL* ssl_connection, int client_socket, TrkString& error_msg);
 	/* Internal code for authentication */
-	static bool Authenticate_Internal(class TrkCliClientOptionResults* opt_result, TrkSSL* ssl_connection, int client_socket, TrkString& error_msg);
+	static bool Authenticate_Internal(class TrkCliClientOptionResults* opt_result, TrkSSL* ssl_connection, int client_socket, TrkString& error_msg, bool retry = false);
 	
 	/* Send implementation with SSL and non-SSL */
 	static int Send(TrkSSL* ssl_connection, int client_socket, TrkString buf, int len);

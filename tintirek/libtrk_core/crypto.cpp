@@ -191,7 +191,7 @@ int ClientVerifyCallback(int preverify, struct x509_store_ctx_st* x509_ctx)
 { return 0; }
 #endif
 
-TrkString TrkCryptoHelper::SHA256(const TrkString& Str)
+TrkString TrkCryptoHelper::SHA256(const TrkString& Str, const TrkString& Seperator)
 {
 	unsigned char hash[SHA256_DIGEST_LENGTH];
 	SHA256_CTX sha256;
@@ -205,6 +205,11 @@ TrkString TrkCryptoHelper::SHA256(const TrkString& Str)
 	{
 		sprintf(hex, "%02x", hash[i]);
 		hashString << hex;
+
+		if (Seperator != "" && i < SHA256_DIGEST_LENGTH - 1)
+		{
+			hashString << Seperator;
+		}
 	}
 
 	return hashString;

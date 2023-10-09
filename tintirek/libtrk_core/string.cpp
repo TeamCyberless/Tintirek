@@ -219,7 +219,7 @@ TrkString TrkString::operator+(const TrkString& other)
 {
 	char* result = new char[length + other.length + 1];
 	strcpy(result, data);
-	strcpy(result, other.data);
+	strcat(result, other.data);
 	return TrkString(result);
 }
 
@@ -249,6 +249,16 @@ bool TrkString::operator!=(const char* str) const
 	}
 
 	return std::strcmp(data, str) != 0;
+}
+
+bool TrkString::operator==(TrkString str) const
+{
+	return TrkString::operator==(str.data);
+}
+
+bool TrkString::operator!=(TrkString str) const
+{
+	return TrkString::operator!=(str.data);
 }
 
 TrkString::operator char* ()

@@ -25,6 +25,7 @@ set(LIBTRK_CORE_SOURCES
 	"tintirek/libtrk_core/crypto.h"
 	"tintirek/libtrk_core/config.cpp"
 	"tintirek/libtrk_core/crypto.cpp"
+	"tintirek/libtrk_core/map.cpp"
 	"tintirek/libtrk_core/sqlite3.cpp"
 	"tintirek/libtrk_core/string.cpp"
 	"tintirek/libtrk_core/version.cpp"
