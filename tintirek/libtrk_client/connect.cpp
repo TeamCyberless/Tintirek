@@ -51,38 +51,46 @@ bool TrkConnectHelper::SendCommand(TrkCliClientOptionResults& opt_result, const 
 		return false;
 	}
 
-	TrkString message;
-	if (!ReceivePacket(ssl_connection, client_socket, message, ErrorStr))
+	if (Command != "Close")
 	{
-		Disconnect_Internal(ssl_context, ssl_connection, client_socket, ErrorStr);
+		TrkString message;
+		if (!ReceivePacket(ssl_connection, client_socket, message, ErrorStr))
+		{
+			Disconnect_Internal(ssl_context, ssl_connection, client_socket, ErrorStr);
+			return false;
+		}
+
+		size_t firstNewlinePos = message.find("\n");
+		TrkString firstLine = (firstNewlinePos != TrkString::npos) ? message.substr(0, firstNewlinePos) : message;
+
+		if (firstLine == "OK")
+		{
+			Disconnect_Internal(ssl_context, ssl_connection, client_socket, ErrorStr);
+
+			if (firstNewlinePos != TrkString::npos)
+			{
+				Returned = message.substr(firstNewlinePos + 1);
+			}
+			return true;
+		}
+		else if (firstLine == "ERROR")
+		{
+			if (firstNewlinePos != TrkString::npos)
+			{
+				ErrorStr = message.substr(firstNewlinePos + 1);
+			}
+			return false;
+		}
+
+		std::cout << message << std::endl;
+		ErrorStr = "Something strange happened. Are you sure about you are not under any MITM attack?";
 		return false;
 	}
-
-	size_t firstNewlinePos = message.find("\n");
-	TrkString firstLine = (firstNewlinePos != TrkString::npos) ? message.substr(0, firstNewlinePos) : message;
-
-	if (firstLine == "OK")
+	else
 	{
 		Disconnect_Internal(ssl_context, ssl_connection, client_socket, ErrorStr);
-
-		if (firstNewlinePos != TrkString::npos)
-		{
-			Returned = message.substr(firstNewlinePos + 1);
-		}
 		return true;
 	}
-	else if (firstLine == "ERROR")
-	{
-		if (firstNewlinePos != TrkString::npos)
-		{
-			ErrorStr = message.substr(firstNewlinePos + 1);
-		}
-		return false;
-	}
-
-	std::cout << message << std::endl;
-	ErrorStr = "Something strange happened. Are you sure about you are not under any MITM attack?";
-	return false;
 }
 
 bool TrkConnectHelper::SendCommandMultiple(class TrkCliClientOptionResults& opt_result, class TrkCommandQueue* Commands, TrkString& ErrorStr, TrkString& Returned)
@@ -462,8 +470,6 @@ bool TrkConnectHelper::Authenticate_Internal(class TrkCliClientOptionResults* op
 				<< TrkCryptoHelper::SHA256(passwd);
 		}
 	}
-
-	std::cout << auth << std::endl;
 
 	if (!SendPacket(ssl_connection, client_socket, auth, errmsg))
 	{

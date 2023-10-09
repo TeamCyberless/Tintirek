@@ -41,7 +41,7 @@ bool TrkPasswdHelper::CheckSessionFileExists()
 			}
 
 			SessionFileCreater.close();
-			return CheckSessionFileExists();
+			return true;
 		}
 	}
 	catch (std::exception ex)

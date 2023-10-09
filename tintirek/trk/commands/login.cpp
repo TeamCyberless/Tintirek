@@ -18,6 +18,8 @@
 #endif
 
 #include "trk_version.h"
+#include "connect.h"
+#include "passwd.h"
 
 namespace fs = std::filesystem;
 
@@ -26,52 +28,31 @@ bool TrkCliLoginCommand::CallCommand_Implementation(const TrkCliOption* Options,
 {
 	TrkCliClientOptionResults* ClientResults = static_cast<TrkCliClientOptionResults*>(Results);
 
-	if (Results->showsessionticket)
+	if (TrkPasswdHelper::CheckSessionFileExists())
 	{
-		TrkString sessionInfoPath;
-
-#ifdef WIN32
+		TrkString ticket = TrkPasswdHelper::GetSessionTicketByServerURL(ClientResults->server_url);
+		if (ticket.size() > 0)
 		{
-			char userProfile[MAX_PATH];
-			if (SUCCEEDED(SHGetFolderPathA(nullptr, CSIDL_PROFILE, nullptr, 0, userProfile)))
+			if (Results->showsessionticket)
 			{
-				sessionInfoPath = userProfile;
+				std::cout << ticket << std::endl;
+				return true;
 			}
-		}
-#else
-		// @TODO: Get User Directory in Linux/Unix Platform.
-#endif
-		sessionInfoPath << (char)fs::path::preferred_separator << ".trksession";
-
-		std::ifstream sessionInfoFile(sessionInfoPath);
-		if (sessionInfoFile.is_open())
-		{
-			std::string l;
-			while (std::getline(sessionInfoFile, l))
-			{
-				TrkString line(l.c_str());
-				size_t delimiterPos = line.find("::");
-				if (delimiterPos != TrkString::npos)
-				{
-					const TrkString serverName = line.substr(0, delimiterPos);
-					if (serverName == ClientResults->server_url)
-					{
-						const TrkString sessionInfo = line.substr(delimiterPos + 2);
-						std::cout << sessionInfo;
-						return true;
-					}
-				}
-			}
+			
+			std::cout << "Already logged in." << std::endl;
+			return true;
 		}
 	}
 
-	std::cout << "Enter Password: " << std::endl;
+	TrkString returned, errmsg;
+	if (!TrkConnectHelper::SendCommand(*ClientResults, "Close", errmsg, returned))
+	{
+		std::cerr << errmsg << std::endl;
+		return true;
+	}
 
-	char* passwd;
-	std::cin >> passwd;
-	//TrkString passwd(passwd);
-
-	return false;
+	std::cout << "Login successful." << std::endl;
+	return true;
 }
 
 bool TrkCliLoginCommand::CheckCommandFlags_Implementation(const char Flag)

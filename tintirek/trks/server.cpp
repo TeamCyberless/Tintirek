@@ -50,13 +50,16 @@ void TrkServer::HandleConnection(TrkClientInfo* client_info)
 		return;
 	}
 
-	TrkString returned;
-	HandleCommand(client_info, message, returned);
-
-	int errcode;
-	if (!SendPacket(client_info, returned, error_str))
+	if (message != "Close")
 	{
-		LOG_ERR("Error with " << client_info->client_connection_info << ": " << error_str);
+		TrkString returned;
+		HandleCommand(client_info, message, returned);
+
+		int errcode;
+		if (!SendPacket(client_info, returned, error_str))
+		{
+			LOG_ERR("Error with " << client_info->client_connection_info << ": " << error_str);
+		}
 	}
 
 	Disconnect(client_info);
