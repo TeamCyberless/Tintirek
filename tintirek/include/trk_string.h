@@ -4,147 +4,123 @@
  *	Tintirek's dynamic string class.
  */
 
-
 #ifndef TRK_STRING_H
 #define TRK_STRING_H
 
+#include "trk_types.h"
 
-#include <iostream>
-#include <cstring>
-#include <sstream>
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-/* Special string class for Tintirek */
-class TrkString
+
+/* Special string structure for Tintirek */
+typedef struct trk_string_t
 {
-public:
-	/* Default constructor */
-	TrkString()
-		: data(nullptr)
-		, length(0)
-	{ }
-
-	/* Construct from C-style string */
-	TrkString(const char* String);
-
-	/* Construct from another TrkString */
-	TrkString(const TrkString& Other);
-
-	/* Constructor with a range of characters from a C-style string */
-	TrkString(const char* Start, const char* End);
-
-	/* Constructor with a single chararacter */
-	TrkString(char Character);
-
-	/* Contrustor with reserving a certain capacity */
-	TrkString(int Reserve);
-
-
-	/* Destructor */
-	~TrkString() {
-		delete[] data;
-	}
-
-
-
-	/* Convert all characters to lowercase */
-	void ToLower();
-
-	/* Convert all characters to uppercase */
-	void ToUpper();
-
-	/* Get a pointer to the first character */
-	const char* begin() const;
-
-	/* Get a pointer past the last character */
-	const char* end() const;
-
-	/* Get first character */
-	char first() const;
-
-	/* Get last character */
-	char last() const;
-
-	/* Checks if the string starts with the specified prefix */
-	bool startswith(const TrkString& prefix) const;
-
-	/* Get the size of the string */
-	size_t size() const;
-
-	/* Find a specific character(s) in the string */
-	size_t find(const char* chars, size_t startPos = 0) const;
-
-	/* Find the first character not in the given character set */
-	size_t find_first_not_of(const char* chars) const;
-
-	/* Find the last character not in the given character set */
-	size_t find_last_not_of(const char* chars) const;
-
-	/* Extract a substring from the string */
-	TrkString substr(size_t pos, size_t count = npos) const;
-
-	/* Erase a portion of the string */
-	void erase(size_t startPos = 0, size_t count = npos);
-
-
-	/* Assignment operator */
-	TrkString& operator=(const TrkString& other);
-
-	/* Addition operator */
-	TrkString operator+(const TrkString& other);
-
-	/* Equality operator with a C-style string */
-	bool operator==(const char* str) const;
-
-	/* Inequality operator with a C-style string */
-	bool operator!=(const char* str) const;
-
-	/* Equality operator with a Tintirek's string */
-	bool operator==(TrkString str) const;
-
-	/* Inequality operator with Tintirek's string */
-	bool operator!=(TrkString str) const;
-
-	/* Conversion operator to char* */
-	operator char* ();
-
-	/* Coversion operator to const char* */
-	operator const char* () const;
-
-
-
-	/* Stream insertion operator for appending values */
-	template<typename T>
-	TrkString& operator << (const T& value)
-	{
-		std::stringstream ss;
-
-		if (data != nullptr)
-		{
-			ss << data;
-		}
-
-		ss << value;
-		*this = ss.str().c_str();
-		return *this;
-	}
-
-
-private:
 	/* Stores string data (C-style string) */
 	char* data;
-
 	/* Length of the string */
-	size_t length;
+	long long length;
+} trk_string_t;
 
 
-/* Static constants */
-public:
-	/* Null position number */
-	static const size_t npos = static_cast<size_t>(-1);
+/* Function to create a empty trk_string_t from C-style string */
+trk_string_t trk_string_create_empty();
 
-	/* Static method for converting a string to an integer */
-	static int stoi(const TrkString& str, int base = 10);
-};
 
+/* Function to create a trk_string_t from C-style string */
+trk_string_t trk_string_create(const char* string);
+
+
+/* Function to create a trk_string_t. Assigned from C-style string */
+void trk_string_assign(trk_string_t* other, const char* string);
+
+
+/* Function to create a trk_string_t from another trk_string_t */
+trk_string_t trk_string_duplicate(const trk_string_t* other);
+
+
+/* Function to create a trk_string_t with a range of characters from a C-style string */
+trk_string_t trk_string_between(const char* start, const char* end);
+
+
+/* Function to create a trk_string_t with a single chararacter */
+trk_string_t trk_string_create_char(char character);
+
+
+/* Function to create a trk_string_t with reserving a certain capacity */
+trk_string_t trk_string_reserve(int reserve);
+
+
+/* Function to destruct a trk_string_t */
+void trk_string_destroy(trk_string_t* other);
+
+
+/* Function to convert all characters to lowercase */
+void trk_string_to_lower(trk_string_t* str);
+
+
+/* Function to convert all characters to uppercase */
+void trk_string_to_upper(trk_string_t* str);
+
+
+/* Function to get a pointer to the first character */
+const char* trk_string_begin(const trk_string_t* str);
+
+
+/* Function to get a pointer past the last character */
+const char* trk_string_end(const trk_string_t* str);
+
+
+/* Function to get the first character */
+char trk_string_first(const trk_string_t* str);
+
+
+/* Function to get the last character */
+char trk_string_last(const trk_string_t* str);
+
+
+/* Function to check if the string starts with the specified prefix */
+int trk_string_starts_with(const trk_string_t* str, const char* prefix);
+
+
+/* Function to get the size of the string */
+unsigned int trk_string_size(const trk_string_t* str);
+
+
+/* Function to find a specific character(s) in the string */
+unsigned int trk_string_find(const trk_string_t* str, const char* chars, unsigned int startPos);
+
+
+/* Function to find the first character not in the given character set */
+unsigned int trk_string_find_first_not_of(const trk_string_t* str, const char* chars);
+
+
+/* Function to find the last character not in the given character set */
+unsigned int trk_string_find_last_not_of(const trk_string_t* str, const char* chars);
+
+
+/* Function to extract a substring from the string */
+trk_string_t trk_string_substr(const trk_string_t* str, unsigned int pos, unsigned int count);
+
+
+/* Function to erase a portion of the string */
+void trk_string_erase(trk_string_t* str, unsigned int startPos, unsigned int count);
+
+
+/* Function to append a C-style string to a trk_string_t */
+void trk_string_append_cstr(trk_string_t* prefix, trk_string_t suffix);
+
+
+/* Null position number */
+static const unsigned int npos = -1;
+
+/* Static method for converting a string to an integer */
+static int stoi(const trk_string_t* str, int base);
+
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* TRK_STRING_H */

@@ -21,7 +21,7 @@
 
 static fd_set* master;
 
-TrkLinuxServer::TrkLinuxServer(int Port, TrkCliServerOptionResult* Options)
+TrkLinuxServer::TrkLinuxServer(int Port, TrkCliServerOptionResults* Options)
 	: TrkServer(Port, Options)
 {
 	server_socket = -1;

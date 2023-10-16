@@ -12,14 +12,14 @@
 #include <memory>
 #include <mutex>
 
-#include "trk_config.h"
+#include "config.h"
 #include "crypto.h"
 
 
 class TrkClientInfo
 {
 public:
-	TrkClientInfo(struct sockaddr_in* ClientInfo = nullptr, int Socket = -1, TrkSSL* SSLSocket = nullptr, TrkString ip_port = nullptr)
+	TrkClientInfo(struct sockaddr_in* ClientInfo = nullptr, int Socket = -1, TrkSSL* SSLSocket = nullptr, TrkString ip_port = "")
 		: client_info(ClientInfo)
 		, client_socket(Socket)
 		, client_ssl_socket(SSLSocket)
@@ -115,7 +115,7 @@ public:
 class TrkServer
 {
 public:
-	TrkServer(int Port, TrkCliServerOptionResult* Options) { }
+    TrkServer(int Port, class TrkCliServerOptionResults* Options) { }
 
 	/*	Starts the server and checks the listening status */
 	virtual bool Init(TrkString& ErrorStr) = 0;
@@ -159,7 +159,7 @@ protected:
 	/*	Maximum amount of sockets to monitor */
 	int max_socket = -1;
 	/*	Main socket set */
-#if WIN32
+#if _WIN32
 	struct fd_set* master;
 #endif
 
@@ -167,7 +167,7 @@ protected:
 	class TrkClientInfo* list = nullptr;
 
 	/*	Data of server program */
-	TrkCliServerOptionResult* opt_result = nullptr;
+	TrkCliServerOptionResults* opt_result = nullptr;
 
 	/* SSL object */
 	TrkSSLCTX* ssl_ctx;
@@ -235,12 +235,12 @@ public:
 };
 
 
-#ifdef WIN32
+#ifdef _WIN32
 
 class TrkWindowsServer : public TrkServer
 {
 public:
-	TrkWindowsServer(int Port, TrkCliServerOptionResult* Options);
+    TrkWindowsServer(int Port, TrkCliServerOptionResults* Options);
 
 	virtual bool Init(TrkString& ErrorStr) override;
 	virtual bool Run(TrkString& ErrorStr) override;
@@ -252,7 +252,7 @@ public:
 class TrkMacOSServer : public TrkServer
 {
 public:
-	TrkMacOSServer(int Port, TrkCliServerOptionResult* Options);
+    TrkMacOSServer(int Port, TrkCliServerOptionResults* Options);
 
 	virtual bool Init(TrkString& ErrorStr) override;
 	virtual bool Run(TrkString& ErrorStr) override;
@@ -264,7 +264,7 @@ public:
 class TrkLinuxServer : public TrkServer
 {
 public:
-	TrkLinuxServer(int Port, TrkCliServerOptionResult* Options);
+    TrkLinuxServer(int Port, TrkCliServerOptionResults* Options);
 
 	virtual bool Init(TrkString& ErrorStr) override;
 	virtual bool Run(TrkString& ErrorStr) override;

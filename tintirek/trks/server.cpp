@@ -24,9 +24,8 @@
 #include <netdb.h>
 #endif
 
-
 #include "trk_version.h"
-#include "trk_database.h"
+#include "database.h"
 #include "logger.h"
 #include "server.h"
 
@@ -71,7 +70,7 @@ void TrkServer::Disconnect(TrkClientInfo* client_info)
 	std::this_thread::sleep_for(sleeptime);
 
 	client_info->mutex->lock();
-#if WIN32
+#if _WIN32
 	closesocket(client_info->client_socket);
 #else
 	close(client_info->client_socket);
@@ -258,19 +257,19 @@ bool TrkServer::HandleCommand(TrkClientInfo* client_info, const TrkString Messag
 
 	if (command == "GetInformation")
 	{
-		TRK_VERSION_DEFINE_PROGRAM(verinfo);
+		TRK_VERSION_DEFINE(verinfo);
 
 		time_t currentTime;
 		time(&currentTime);
 
-		time_t timeDiff = currentTime - (opt_result->start_timestamp / 1000);
+        time_t timeDiff = currentTime - (opt_result->start_timestamp / 1000);
 		int hours = timeDiff / 3600;
 		int minutes = (timeDiff % 3600) / 60;
 		int seconds = timeDiff % 60;
 
 		TrkString ss;
-		ss << "OK\n"
-			<< "serverversion=" << verinfo.getFullVersionInfo() << ";"
+        ss << "OK\n"
+           << "serverversion=" << trk_get_full_version_info(&verinfo) << ";"
 			<< "serveruptime="
 			<< std::setfill('0') << std::setw(2) << hours << ":"
 			<< std::setw(2) << minutes << ":"

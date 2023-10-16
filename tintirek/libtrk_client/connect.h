@@ -93,7 +93,7 @@ public:
 	{
 		if (IsEmpty())
 		{
-			return nullptr;
+			return "";
 		}
 
 		return queue_front->command;

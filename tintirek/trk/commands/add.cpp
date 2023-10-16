@@ -28,7 +28,7 @@ bool TrkCliAddCommand::CallCommand_Implementation(const TrkCliOption* Options, T
 		{
 			if (fs::is_directory(targetPath))
 			{
-				TrkCommandQueue* firstElem = new TrkCommandQueue(nullptr);
+                TrkCommandQueue* firstElem = new TrkCommandQueue("");
 				addQueue.Enqueue(firstElem);
 				int count = 0;
 				for (const auto& entry : fs::recursive_directory_iterator(targetPath))

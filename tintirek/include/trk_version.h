@@ -5,17 +5,20 @@
  */
 
 
-
 #ifndef TRK_VERSION_H
 #define TRK_VERSION_H
 
 
-#include <iostream>
-
 #include "trk_types.h"
+#include "trk_string.h"
 
 
-/* Macro to convert an identifier into a string literal */
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
+	/* Macro to convert an identifier into a string literal */
 #define STRINGIFY_HELPER(x) #x
 #define STRINGIFY(x) STRINGIFY_HELPER(x)
 
@@ -30,7 +33,7 @@
 
 /*
  *	Version Branch Tag
- * 
+ *
  *	A descriptive string indicating the source branch
  *	from which the software originated. The presence of
  *	this tag as " (Development)" within the repository
@@ -39,7 +42,7 @@
  */
 #define TRK_VER_TAG " (Development)"
 
-/* Version number */
+ /* Version number */
 #define TRK_VER_NUM STRINGIFY(TRK_VER_MAJOR) \
 					"." STRINGIFY(TRK_VER_MINOR) \
 					"." STRINGIFY(TRK_VER_PATCH)
@@ -49,89 +52,82 @@
 
 
 
-/* 
+/*
  *	Version information
- * 
+ *
  *	Represents version information for the Tintirek.
  *
- *	The TrkVersion class provides a way to store and manage
+ *	The trk_version_t class provides a way to store and manage
  *	major, minor, and patch version numbers, along with an
  *	optional version tag that provides additional descriptive
  *	information.
  */
-class TrkVersion
+struct trk_version_t
 {
-public:
-	TrkVersion(int major, int minor, int patch, const TrkString tag, const TrkString label)
-		: major_(major)
-		, minor_(minor)
-		, patch_(patch)
-		, tag_(tag)
-		, label_(label)
-	{ }
-
-    /* Get the major version number */
-    int getMajor() const { return major_; }
-
-    /* Get the minor version number */
-    int getMinor() const { return minor_; }
-
-    /* Get the patch version number */
-    int getPatch() const { return patch_; }
-
-    /* Get the version tag */
-    TrkString getTag() const { return tag_; }
-
-	/* Get the version owner label */
-	TrkString getLabel() const { return label_; }
-
-	/* Return full version info */
-	TrkString getFullVersionInfo() const;
-
-	/* Check library version compatibility */
-	static bool TrkVerCompatible(const TrkVersion* my_version, const TrkVersion* lib_version);
-
-	/* Check if versions are the same */
-	static bool TrkVerEqual(const TrkVersion* my_version, const TrkVersion* other_version);
-
-
-	/* Override for "<<" operator */
-	friend std::ostream& operator << (std::ostream& os, const TrkVersion& obj);
-
-
-private:
 	/* Major version number */
-	int major_;
+	int major;
 	/* Minor version number */
-	int minor_;
+	int minor;
 	/* Patch number */
-	int patch_;
+	int patch;
 	/* The version tag, such as " (Development)" or " (Release)" */
-	TrkString tag_;
-	/* The version owner, such as "program" or "trk_core" */
-	TrkString label_;
+	struct trk_string_t tag;
 };
 
-
-/* Helper class for check version */
-class TrkVersionHelper
+/*
+ *	An entry in the compatibility checklist
+ */
+typedef struct trk_version_checklist_t
 {
-public:
-	static bool CheckVersionList(const TrkVersion* MyVersion, const TrkVersion** CheckList, bool UseEqual, TrkString& ErrorString);
-};
+	/* The version owner, such as "program" or "trk_core" */
+    const char* label;
+	/* Version query function for this entry */
+	const trk_version_t *(*version_query)(void);
+} trk_version_checklist_t;
+
+/* Return full version info */
+trk_string_t trk_get_full_version_info(const trk_version_t* version);
+
+/* Check library version compatibility */
+trk_boolean_t trk_version_compatible(const trk_version_t* my_version, const trk_version_t* lib_version);
+
+/* Check if versions are the same */
+trk_boolean_t trk_version_equal(const trk_version_t* my_version, const trk_version_t* other_version);
+
+/* Helper function for check version */
+trk_boolean_t trk_version_check_list(const trk_version_t* my_version, const trk_version_checklist_t* check_list, trk_boolean_t use_equal, trk_string_t* error_str);
 
 
-/* Define a static TrkVersion object */
-#define TRK_VERSION_DEFINE_PROGRAM(name) TRK_VERSION_DEFINE(name, "program")
-#define TRK_VERSION_DEFINE(name, libname) \
-static const TrkVersion name = \
-{ \
-	TRK_VER_MAJOR, \
-	TRK_VER_MINOR, \
-	TRK_VER_PATCH, \
-	TRK_VER_TAG, \
-	libname, \
-}\
+/* Define a static trk_version_t object */
+#define TRK_VERSION_DEFINE(name) 	\
+static const trk_version_t name = 	\
+{ 									\
+	TRK_VER_MAJOR, 					\
+	TRK_VER_MINOR, 					\
+	TRK_VER_PATCH, 					\
+	TRK_VER_TAG, 					\
+}
 
+/* Generate the implementation of a version query function */
+#define TRK_VERSION_BODY 			\
+static struct versioninfo_t			\
+{									\
+	const char* const str;			\
+	const trk_version_t num;		\
+} const versioninfo =				\
+{									\
+	"@(#)" TRK_VERSION,				\
+	{								\
+		TRK_VER_MAJOR,				\
+		TRK_VER_MINOR,				\
+		TRK_VER_PATCH				\
+	}								\
+};									\
+return &versioninfo.num
+
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* TRK_VERSION_H */

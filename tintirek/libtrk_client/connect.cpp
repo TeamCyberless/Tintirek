@@ -24,7 +24,7 @@
 #define SOCKET_ERROR (-1)
 #endif
 
-#include "trk_cmdline.h"
+#include "cmdline.h"
 #include "connect.h"
 #include "passwd.h"
 
@@ -310,7 +310,7 @@ bool TrkConnectHelper::Connect_Internal(TrkCliClientOptionResults& opt_result, T
 			errorCode = WSAGetLastError();
 			closesocket(client_socket);
 #endif
-			client_socket = INVALID_SOCKET;
+			client_socket = static_cast<int>(INVALID_SOCKET);
 		}
 	}
 
@@ -345,7 +345,20 @@ bool TrkConnectHelper::Connect_Internal(TrkCliClientOptionResults& opt_result, T
 
 	freeaddrinfo(result);
 
-	unsigned char response[5] = {0xEA, 0xEB, 0x00, 0xCC, (opt_result.trust ? 0x01 : 0x00)};
+	unsigned char response[5];
+	response[0] = 0xEA;
+	response[0] = 0xEB;
+	response[0] = 0x00;
+	response[0] = 0xCC;
+	if (opt_result.trust)
+	{
+		response[0] = 0x01;
+	}
+	else
+	{
+		response[0] = 0x00;
+	}
+
 	send(client_socket, reinterpret_cast<char*>(response), sizeof(response), 0);
 
 	unsigned char serverResponse[5];

@@ -7,7 +7,7 @@
 #ifndef TRK_TRUST_COMMAND_H
 #define TRK_TRUST_COMMAND_H
 
-#include "trk_cmdline.h"
+#include "cmdline.h"
 
 class TrkCliTrustCommand : public TrkCliCommand
 {

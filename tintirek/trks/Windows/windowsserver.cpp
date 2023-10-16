@@ -4,7 +4,7 @@
  *	Utilities for the Tintirek Server based on Windows OS
  */
 
-#ifdef WIN32
+#ifdef _WIN32
 
 #include <iostream>
 #include <WinSock2.h>
@@ -18,7 +18,7 @@
 #include "../logger.h"
 
 
-TrkWindowsServer::TrkWindowsServer(int Port, TrkCliServerOptionResult* Options)
+TrkWindowsServer::TrkWindowsServer(int Port, TrkCliServerOptionResults* Options)
 	: TrkServer(Port, Options)
 {
 	server_socket = static_cast<int>(INVALID_SOCKET);
@@ -88,16 +88,16 @@ bool TrkWindowsServer::Init(TrkString& ErrorStr)
 	FD_SET(server_socket, master);
 	max_socket = server_socket;
 
-	if (opt_result->ssl_files_path != "")
+    if (opt_result->ssl_files_path != "")
 	{
 		try
 		{
 			TrkSSLHelper::InitSSL();
 			ssl_ctx = TrkSSLHelper::CreateServerMethod();
 
-			if (!TrkSSLHelper::LoadSSLFiles(ssl_ctx, opt_result->ssl_files_path))
+            if (!TrkSSLHelper::LoadSSLFiles(ssl_ctx, opt_result->ssl_files_path))
 			{
-				ErrorStr << "Certificate files didn't load: " << opt_result->ssl_files_path;
+                ErrorStr << "Certificate files didn't load: " << opt_result->ssl_files_path;
 				delete master;
 				closesocket(server_socket);
 				WSACleanup();
@@ -121,7 +121,7 @@ bool TrkWindowsServer::Init(TrkString& ErrorStr)
 
 bool TrkWindowsServer::Run(TrkString& ErrorStr)
 {
-	bool ssl_active = opt_result->ssl_files_path != "";
+    bool ssl_active = opt_result->ssl_files_path != "";
 	fd_set readSet = *master;
 	struct timeval timeout;
 	timeout.tv_sec = 1;
@@ -171,7 +171,19 @@ bool TrkWindowsServer::Run(TrkString& ErrorStr)
 						{
 							ErrorStr << "TLS mode mismatch, terminating connection: " << ss;
 
-							unsigned char response[5] = { 0xEA, 0xEB, 0x00, 0xCD, (ssl_active ? 0x01 : 0x00) };
+                            unsigned char response[5];
+                            response[0] = 0xEA;
+                            response[1] = 0xEB;
+                            response[2] = 0x00;
+                            response[3] = 0xCD;
+                            if (ssl_active)
+                            {
+                                response[4] = 0x01;
+                            }
+                            else
+                            {
+                                response[4] = 0x00;
+                            }
 							send(clientSocket, reinterpret_cast<char*>(response), sizeof(response), 0);
 							closesocket(clientSocket);
 							continue;
@@ -180,7 +192,19 @@ bool TrkWindowsServer::Run(TrkString& ErrorStr)
 						{
 							LOG_OUT("Client-Server TLS check-up completed: " << ss);
 
-							unsigned char response[5] = { 0xEA, 0xEB, 0x00, 0xCD, (ssl_active ? 0x01 : 0x00) };
+                            unsigned char response[5];
+                            response[0] = 0xEA;
+                            response[1] = 0xEB;
+                            response[2] = 0x00;
+                            response[3] = 0xCD;
+                            if (ssl_active)
+                            {
+                                response[4] = 0x01;
+                            }
+                            else
+                            {
+                                response[4] = 0x00;
+                            }
 							send(clientSocket, reinterpret_cast<char*>(response), sizeof(response), 0);
 						}
 					}
@@ -244,4 +268,4 @@ bool TrkWindowsServer::Cleanup(TrkString& ErrorStr)
 	return true;
 }
 
-#endif /* WIN32 */
+#endif /* _WIN32 */

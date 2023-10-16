@@ -19,7 +19,7 @@
 #endif
 
 
-#include "trk_config.h"
+#include "config.h"
 
 namespace fs = std::filesystem;
 

@@ -6,7 +6,7 @@
 
 #include "../service.h"
 
-#ifdef WIN32
+#ifdef _WIN32
 
 #include <iostream>
 #include <windows.h>
@@ -53,4 +53,4 @@ void TrkWindowsService::ServiceNotifyStop()
 	
 }
 
-#endif /* WIN32 */
+#endif /* _WIN32 */

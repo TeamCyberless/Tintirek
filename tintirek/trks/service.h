@@ -15,7 +15,7 @@
 #define SERVICE_H
 
 
-#include <trk_config.h>
+#include "config.h"
 
 typedef int sig_atomic_t;
 
@@ -41,7 +41,7 @@ protected:
 };
 
 
-#ifdef WIN32
+#ifdef _WIN32
 
 class TrkWindowsService : public TrkServiceInterface
 {

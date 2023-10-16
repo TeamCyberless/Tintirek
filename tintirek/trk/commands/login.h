@@ -7,7 +7,7 @@
 #ifndef TRK_LOGIN_COMMAND_H
 #define TRK_LOGIN_COMMAND_H
 
-#include "trk_cmdline.h"
+#include "cmdline.h"
 
 class TrkCliLoginCommand : public TrkCliCommand
 {

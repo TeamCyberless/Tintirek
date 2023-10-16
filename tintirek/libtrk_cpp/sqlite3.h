@@ -8,6 +8,9 @@
 #define TRK_SQLITE3_H
 
 #include "trk_types.h"
+#include "trkstring.h"
+#include <memory>
+#include <map>
 
 /* Forward declarations to avoid inclusion of sqlite3 in this header */
 struct sqlite3;
@@ -219,7 +222,7 @@ namespace TrkSqlite
 		int column_count = 0;							// Number of columns in the result of the prepared statement
 		bool has_row = false;							// True when a row has been fetched with ExecuteStep()
 		bool done = false;								// True when the last ExecuteStep() had no more row to fetch
-		mutable TrkMap column_names;					// Map of columns index by name
+		mutable std::map<TrkString, int> column_names;	// Map of columns index by name
 	};
 
 	/* Tintirek's Value Class */

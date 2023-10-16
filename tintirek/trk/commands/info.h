@@ -7,7 +7,7 @@
 #ifndef TRK_INFO_COMMAND_H
 #define TRK_INFO_COMMAND_H
 
-#include "trk_cmdline.h"
+#include "cmdline.h"
 
 class TrkCliInfoCommand : public TrkCliCommand
 {

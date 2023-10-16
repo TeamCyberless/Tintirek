@@ -13,7 +13,10 @@
 
 
 /* Library version definition */
-TRK_VERSION_DEFINE(TrkCoreVerVar, "trk_core");
+inline const trk_version_t* trk_core_version(void)
+{
+    TRK_VERSION_BODY;
+}
 
 
 #endif /* TRK_CORE_H */
