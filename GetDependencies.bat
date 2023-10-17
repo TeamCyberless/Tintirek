@@ -8,4 +8,5 @@ REM		installing project dependencies,
 REM
 
 cd .\tools\install-deps
-go run main.go
+go run main.go %*
+cd ..\..

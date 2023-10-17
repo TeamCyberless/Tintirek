@@ -34,9 +34,9 @@ void trk_string_assign(trk_string_t* other, const char* string)
 		trk_string_destroy(other);
 	}
 
-	trk_string_t result;
-	result.data = strdup(string);
-	result.length = strlen(string);
+	trk_string_t* result = (trk_string_t*)malloc(sizeof(trk_string_t));
+	result->data = strdup(string);
+	result->length = strlen(string);
 	other = &result;
 }
 
@@ -80,9 +80,12 @@ trk_string_t trk_string_reserve(int reserve)
 
 void trk_string_destroy(trk_string_t* other)
 {
-	free(other->data);
-	other->data = NULL;
-	other->length = 0;
+	if (other != NULL)
+	{
+		free(other->data);
+		other->data = NULL;
+		other->length = 0;
+	}
 }
 
 void trk_string_to_lower(trk_string_t* str)
