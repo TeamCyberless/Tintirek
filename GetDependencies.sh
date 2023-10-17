@@ -7,5 +7,5 @@
 #
 
 cd ./tools/install-deps
-exec go run main.go
+go run main.go "$@"
 cd ../..

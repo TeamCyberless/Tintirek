@@ -6,6 +6,7 @@
 
 
 #include <iostream>
+#include <string.h>
 #include "sqlite3.h"
 #include <../../deps/sqlite-amalgamation/sqlite3.h>
 
@@ -292,7 +293,7 @@ const TrkString TrkSqlite::TrkStatement::GetQuery() const
 const TrkString TrkSqlite::TrkStatement::GetExpandedQuery() const
 {
 	auto expanded = sqlite3_expanded_sql(GetPreparedStatement());
-	TrkString expandedStr(strdup(expanded));
+	TrkString expandedStr(expanded);
 	sqlite3_free(expanded);
 	return expandedStr;
 }
@@ -408,22 +409,22 @@ int TrkSqlite::TrkStatement::GetColumnCount() const
 
 int TrkSqlite::TrkStatement::GetColumnIndex(const TrkString Name) const
 {
-	if (column_names.Size() <= 0)
+	if (column_names.empty())
 	{
 		for (int i = 0; i < column_count; i++)
 		{
-			TrkString ColumnName = sqlite3_column_name(GetPreparedStatement(), i);
-			column_names.Insert(new TrkMapValue(ColumnName, (void*)&i, INTEGER));
+			const TrkString ColumnName = sqlite3_column_name(GetPreparedStatement(), i);
+			column_names[ColumnName] = i;
 		}
 	}
 
-	const auto Elem = column_names.Find(Name);
-	if (Elem == nullptr)
+	const auto Elem = column_names.find(Name);
+	if (Elem == column_names.end())
 	{
 		throw TrkDatabaseException("Unknown column name.");
 	}
 
-	return Elem->GetInt();
+	return Elem->second;
 }
 
 int TrkSqlite::TrkStatement::GetErrorCode() const

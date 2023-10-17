@@ -14,6 +14,36 @@ import (
 	"runtime"
 )
 
+func testPowershellExecution() bool {
+	testcmd := exec.Command("powershell.exe", "Get-ExecutionPolicy")
+
+	stdout, err := testcmd.StdoutPipe()
+	if err != nil {
+		fmt.Println("Error:", err)
+		return false
+	}
+
+	err = testcmd.Start()
+	if err != nil {
+		fmt.Println("Error:", err)
+		return false
+	}
+
+	outputBytes, err := io.ReadAll(stdout)
+	if err != nil {
+		fmt.Println("Error:", err)
+		return false
+	}
+
+	output := strings.TrimSpace(string(outputBytes))
+	if !strings.EqualFold(output, "RemoteSigned") {
+		fmt.Println("PowerShell ExecutionPolicy must be RemoteSigned to perform OpenSSL compile.")
+		return false
+	}
+
+	return true
+}
+
 func getsqlite(projectRoot string, sqlite string, sqliteVerRelYear string) {
 	depsDir := filepath.Join(projectRoot, "deps")
 	if _, err := os.Stat(filepath.Join(depsDir, "sqlite-amalgamation")); !os.IsNotExist(err) {
@@ -66,29 +96,7 @@ func getopenssl(projectRoot string, openssl string, opensslVer string) {
 
 	ostype := runtime.GOOS
 	if ostype == "windows" {
-		testcmd := exec.Command("powershell.exe", "Get-ExecutionPolicy")
-
-		stdout, err := testcmd.StdoutPipe()
-		if err != nil {
-			fmt.Println("Error:", err)
-			return
-		}
-
-		err = testcmd.Start()
-		if err != nil {
-			fmt.Println("Error:", err)
-			return
-		}
-
-		outputBytes, err := io.ReadAll(stdout)
-		if err != nil {
-			fmt.Println("Error:", err)
-			return
-		}
-
-		output := strings.TrimSpace(string(outputBytes))
-		if !strings.EqualFold(output, "RemoteSigned") {
-			fmt.Println("PowerShell ExecutionPolicy must be RemoteSigned to perform OpenSSL compile.")
+		if testPowershellExecution() == false {
 			return
 		}
 
@@ -97,11 +105,11 @@ func getopenssl(projectRoot string, openssl string, opensslVer string) {
 			fmt.Println("Error:", err)
 			return
 		}
-		psScriptPath = filepath.Join(psScriptPath, "win-build-openssl.ps1")
 
+		psScriptPath = filepath.Join(psScriptPath, "win-build-openssl.ps1")
 		cmd := exec.Command("powershell.exe", "-File", psScriptPath, "-tempPath", tempDir, "-depsPath", depsDir, "-openssl", openssl)
 
-		stdout, err = cmd.StdoutPipe()
+		stdout, err := cmd.StdoutPipe()
 		if err != nil {
 			fmt.Println("Error:", err)
 			return
@@ -190,15 +198,129 @@ func getopenssl(projectRoot string, openssl string, opensslVer string) {
 	}
 }
 
+func getgtest(projectRoot string, gtest string, gtestVer string) {
+	depsDir := filepath.Join(projectRoot, "deps")
+	if _, err := os.Stat(filepath.Join(depsDir, "googletest")); !os.IsNotExist(err) {
+		fmt.Println("GTest folder already exists locally. The downloaded copy will not be used.")
+		return
+	}
+
+	tempDir := filepath.Join(projectRoot, "temp")
+	fileURL := fmt.Sprintf("https://github.com/google/googletest/archive/refs/tags/v%s.zip", gtestVer)
+
+	err := tools.DownloadFile(fileURL, filepath.Join(tempDir, gtest + ".zip"))
+	if err != nil {
+		fmt.Println("Error:", err)
+		return
+	}
+
+	err = tools.ZIPExtract(filepath.Join(tempDir, gtest + ".zip"), tempDir)
+	if err != nil {
+		fmt.Println("Error:", err)
+		return
+	}
+
+	ostype := runtime.GOOS
+	if ostype == "windows" {
+		if testPowershellExecution() == false {
+			return
+		}
+
+		psScriptPath, err := os.Getwd()
+		if err != nil {
+			fmt.Println("Error:", err)
+			return
+		}
+
+		psScriptPath = filepath.Join(psScriptPath, "win-build-gtest.ps1")
+		cmd := exec.Command("powershell.exe", "-File", psScriptPath, "-tempPath", tempDir, "-depsPath", depsDir, "-gtest", gtest)
+
+		stdout, err := cmd.StdoutPipe()
+		if err != nil {
+			fmt.Println("Error:", err)
+			return
+		}
+
+		err = cmd.Start()
+		if err != nil {
+	        	fmt.Println("Error:", err)
+			return
+		}
+
+		reader := bufio.NewReader(stdout)
+		for {
+			line, err := reader.ReadString('\n')
+			if err != nil && err == io.EOF {
+				break
+			}
+			fmt.Print(line)
+		}
+
+		err = cmd.Wait()
+		if err != nil {
+			if exitErr, ok := err.(*exec.ExitError); ok {
+				exitCode := exitErr.ExitCode()
+				fmt.Printf("PowerShell: %d\n", exitCode)
+			} else {
+				fmt.Println("Error:", err)
+			}
+
+			return
+		}
+	} else {
+		cmakegenerate := exec.Command("cmake", ".")
+		cmakebuild := exec.Command("cmake", "--build", ".", "--config", "Release")
+
+		cmakegenerate.Stdout = os.Stdout
+		cmakegenerate.Stderr = os.Stderr
+		cmakebuild.Stdout = os.Stdout
+		cmakebuild.Stderr = os.Stderr
+
+		cmakegenerate.Dir = filepath.Join(tempDir, gtest)
+		if err := cmakegenerate.Run(); err != nil {
+			fmt.Println("Error:", err)
+	        return
+		}
+
+		cmakebuild.Dir = filepath.Join(tempDir, gtest)
+		if err := cmakebuild.Run(); err != nil {
+			fmt.Println("Error:", err)
+			return
+		}
+
+		if err := os.MkdirAll(filepath.Join(depsDir, "googletest"), os.ModePerm); err != nil {
+			fmt.Println("Error:", err)
+			return
+		}
+
+		if err := tools.Copy(filepath.Join(tempDir, gtest, "lib"), filepath.Join(depsDir, "googletest", "lib")); err != nil {
+			fmt.Println("Error:", err)
+			return
+		}
+
+		if err := tools.Copy(filepath.Join(tempDir, gtest, "googlemock", "include"), filepath.Join(depsDir, "googletest", "include")); err != nil {
+			fmt.Println("Error:", err)
+			return
+		}
+
+		if err := tools.Copy(filepath.Join(tempDir, gtest, "googletest", "include"), filepath.Join(depsDir, "googletest", "include")); err != nil {
+			fmt.Println("Error:", err)
+			return
+		}
+	}
+}
+
 func main() {
+	all := flag.Bool("all", false, "Ingores disables and installs everything")
 	nosqlite3 := flag.Bool("no-sqlite3", false, "Disables SQLite3")
 	noopenssl := flag.Bool("no-openssl", false, "Disables OpenSSL")
+	nogtest := flag.Bool("no-gtest", true, "Disables GTest")
 	helpPtr := flag.Bool("h", false, "Display help message")
 	flag.BoolVar(helpPtr, "help", false, "Display help message")
 	flag.Parse()
 
 	if *helpPtr {
-		fmt.Println("Usage: go run main.go [--no|XXX] [-h/--help]\n")
+		fmt.Println("Usage: go run main.go [--no-XXX true/false] [-h/--help]\n")
 		fmt.Println("These dependencies can be disabled:")
 		fmt.Println("sqlite3")
 		fmt.Println("openssl")
@@ -208,6 +330,7 @@ func main() {
 
 	SQLITE_VERSION := tools.GetEnv("SQLITE_VERSION", "3.43.0")
 	OPENSSL_VERSION := tools.GetEnv("OPENSSL_VERSION", "1.1.1i")
+	GTEST_VERSION := tools.GetEnv("GTEST_VERSION", "1.14.0")
 
 	// Used for SQLite download URL
 	SQLITE_VERSION_RELEASE_YEAR := tools.GetEnv("SQLITE_VERSION_RELEASE_YEAR", "2023")
@@ -225,6 +348,7 @@ func main() {
 
 	SQLITE := fmt.Sprintf("sqlite-amalgamation-%d%02d%02d%02d", SQLITE_VERSION_INT[0], SQLITE_VERSION_INT[1], SQLITE_VERSION_INT[2], SQLITE_VERSION_INT[3])
 	OPENSSL := fmt.Sprintf("openssl-%s", OPENSSL_VERSION)
+	GTEST := fmt.Sprintf("googletest-%s", GTEST_VERSION)
 
 	PROJECT_DIR, err := os.Getwd()
 	if err != nil {
@@ -245,16 +369,20 @@ func main() {
 		return
 	}
 
-	if !*nosqlite3 {
+	if !*nosqlite3 || *all {
 		getsqlite(PROJECT_DIR, SQLITE, SQLITE_VERSION_RELEASE_YEAR)
 	}
 
-	if !*noopenssl {
+	if !*noopenssl || *all {
 		getopenssl(PROJECT_DIR, OPENSSL, OPENSSL_VERSION)
 	}
 
-	if err := os.RemoveAll(filepath.Join(PROJECT_DIR, "temp")); err != nil {
+	if !*nogtest || *all {
+		getgtest(PROJECT_DIR, GTEST, GTEST_VERSION)
+	}
+
+	/*if err := os.RemoveAll(filepath.Join(PROJECT_DIR, "temp")); err != nil {
 		fmt.Println("Error", err)
 		return
-	}
+	}*/
 }

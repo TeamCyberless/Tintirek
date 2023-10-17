@@ -6,11 +6,7 @@
 
 #include <iostream>
 
-#ifdef WIN32
-#include <openssl/applink.c>
-#endif
-
-#ifndef WIN32
+#ifndef _WIN32
 #include <fstream>
 #include <unistd.h>
 #include <fcntl.h>
@@ -24,41 +20,42 @@
 #include <chrono>
 
 #include "trk_types.h"
-#include "trk_cmdline.h"
 #include "trk_version.h"
-#include "trk_config.h"
 #include "trk_core.h"
-#include "trk_database.h"
+#include "trk_cpp.h"
 
+#include "cmdline.h"
+#include "config.h"
+#include "database.h"
+#include "logger.h"
 #include "server.h"
 #include "service.h"
-#include "logger.h"
 
 namespace fs = std::filesystem;
 
 /* Options and descriptions for the cmd-line. */
 const TrkCliOptionFlag trk_cli_options[] =
 {
-		TrkCliOptionFlag('v', TrkString("Displays version info")),
-		TrkCliOptionFlag('h', TrkString("Displays usage")),
+	TrkCliOptionFlag('v', TrkString("Displays version info")),
+	TrkCliOptionFlag('h', TrkString("Displays usage")),
 
-	#ifndef WIN32
-		TrkCliOptionFlag('d', TrkString("Starts as daemon mode")),
-		TrkCliOptionFlag('i', TrkString("Assign a pid file to process")),
-		TrkCliOptionFlag('l', TrkString("Defines log file path")),
-	#endif
+#ifndef _WIN32
+	TrkCliOptionFlag('d', TrkString("Starts as daemon mode")),
+	TrkCliOptionFlag('i', TrkString("Assign a pid file to process")),
+	TrkCliOptionFlag('l', TrkString("Defines log file path")),
+#endif
 
-		TrkCliOptionFlag('p', TrkString("Sets server running port")),
-		TrkCliOptionFlag('r', TrkString("Sets server root directory")),
-		TrkCliOptionFlag('s', TrkString("Sets SSL path containing the server SSL credential files"), TrkString("Path"))
+	TrkCliOptionFlag('p', TrkString("Sets server running port")),
+	TrkCliOptionFlag('r', TrkString("Sets server root directory")),
+	TrkCliOptionFlag('s', TrkString("Sets SSL path containing the server SSL credential files"), TrkString("Path"))
 };
 
 
 /* Prints version information to screen */
 void print_version()
 {
-	TRK_VERSION_DEFINE_PROGRAM(ver_info);
-	std::cout << ver_info << std::endl;
+	TRK_VERSION_DEFINE(ver_info);
+    std::cout << trk_get_full_version_info(&ver_info).data << std::endl;
 }
 
 
@@ -97,11 +94,11 @@ bool return_argument_or_null(TrkString& argument, char opt, int& i, char** argv,
 
 
 /* Library version check */
-const TrkVersion* libVersionList[] =
+const trk_version_checklist_t libVersionList[] =
 {
-	&TrkCoreVerVar,
-	&TrkDatabaseVerVar,
-	nullptr
+    { "trk_core", trk_core_version },
+    { "trk_cpp", trk_cpp_version },
+    { NULL, NULL },
 };
 
 
@@ -111,19 +108,19 @@ int main(int argc, char** argv)
 {
 	/* Check library versions */
 	{
-		TRK_VERSION_DEFINE_PROGRAM(MyVer);
-		TrkString ErrorStr;
-		if (!TrkVersionHelper::CheckVersionList(&MyVer, libVersionList, false, ErrorStr))
+		TRK_VERSION_DEFINE(MyVer);
+        trk_string_t ErrorStr;
+        if (!trk_version_check_list(&MyVer, libVersionList, false, &ErrorStr))
 		{
-			std::cerr << ErrorStr << std::endl;
+            std::cerr << ErrorStr << std::endl;
 			return EXIT_FAILURE;
-		}
+        }
 	}
 
-	TrkCliServerOptionResult opt_result;
+    TrkCliServerOptionResults opt_result;
 	opt_result.start_timestamp = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
 
-#ifndef WIN32
+#ifndef _WIN32
 	struct flock fileLock;
 	int pidFileDescriptor = -1;
 #endif
@@ -146,14 +143,14 @@ int main(int argc, char** argv)
 				print_help(true);
 				return EXIT_SUCCESS;
 				break;
-#ifndef WIN32
+#ifndef _WIN32
 			case 'd':
-				opt_result.daemon = true;
+                opt_result.daemon = true;
 				break;
 
 
-			case 'i':
-				if (!return_argument_or_null(opt_result.pid_file, 'i', i, argv, argc))
+            case 'i':
+                if (!return_argument_or_null(opt_result.pid_file, 'i', i, argv, argc))
 				{
 					print_help();
 					return EXIT_FAILURE;
@@ -161,7 +158,7 @@ int main(int argc, char** argv)
 				break;
 
 			case 'l':
-				if (!return_argument_or_null(opt_result.log_path, 'l', i, argv, argc))
+                if (!return_argument_or_null(opt_result.log_path, 'l', i, argv, argc))
 				{
 					print_help();
 					return EXIT_FAILURE;
@@ -169,8 +166,8 @@ int main(int argc, char** argv)
 				break;
 #endif
 			case 'p':
-			{
-				TrkString optarg;
+            {
+            	TrkString optarg;
 				if (!return_argument_or_null(optarg, 'p', i, argv, argc))
 				{
 					print_help();
@@ -190,7 +187,7 @@ int main(int argc, char** argv)
 
 					if (result >= 0 && result <= UINT16_MAX)
 					{
-						opt_result.port_number = static_cast<uint16_t>(result);
+                        opt_result.port_number = static_cast<uint16_t>(result);
 					}
 					else
 					{
@@ -203,7 +200,7 @@ int main(int argc, char** argv)
 				break;
 
 			case 'r':
-				if (!return_argument_or_null(opt_result.running_root, 'r', i, argv, argc))
+                if (!return_argument_or_null(opt_result.running_root, 'r', i, argv, argc))
 				{
 					print_help();
 					return EXIT_FAILURE;
@@ -211,7 +208,7 @@ int main(int argc, char** argv)
 				break;
 
 			case 's':
-				if (!return_argument_or_null(opt_result.ssl_files_path, 'r', i, argv, argc))
+                if (!return_argument_or_null(opt_result.ssl_files_path, 'r', i, argv, argc))
 				{
 					print_help();
 					return EXIT_FAILURE;
@@ -226,40 +223,40 @@ int main(int argc, char** argv)
 		}
 	}
 
-	if (opt_result.pid_file == "")
-	{
-		if (opt_result.log_path != "")
+    if (opt_result.pid_file == "")
+    {
+        if (opt_result.log_path != "")
 		{
 			std::cout << "Log path parameter [-l] must be used with PID parameter." << std::endl;
 			print_help();
 			return EXIT_FAILURE;
-		}
+        }
 
-		opt_result.pid_file << (fs::temp_directory_path() / "trks.pid").string();
+        opt_result.pid_file << (fs::temp_directory_path() / "trks.pid").string();
 	}
 
-	if (opt_result.log_path == "")
+    if (opt_result.log_path == "")
 	{
-		opt_result.log_path << (fs::temp_directory_path() / "trks_log_").string() << GetTimestamp("%Y-%m-%d_%H-%M-%S");
+        opt_result.log_path << (fs::temp_directory_path() / "trks_log_").string() << GetTimestamp("%Y-%m-%d_%H-%M-%S");
 	}
 
-	if (opt_result.running_root == "")
+    if (opt_result.running_root == "")
 	{
-		opt_result.running_root << fs::current_path().string() << (char)fs::path::preferred_separator;
+        opt_result.running_root << fs::current_path().string() << (char)fs::path::preferred_separator;
 	}
 
 	{
 		LOG_OUT("Check and generate databases...");
 		auto dbInitStart = std::chrono::high_resolution_clock::now();
 
-		InitDatabases(opt_result.running_root);
+        InitDatabases(opt_result.running_root);
 
 		LOG_OUT("Database generation done! Took " << std::chrono::duration_cast<std::chrono::duration<double>>(std::chrono::high_resolution_clock::now() - dbInitStart).count() << " seconds.");
 	}
 
-#ifdef WIN32 
+#ifdef _WIN32
 	TrkWindowsService service;
-	TrkWindowsServer server(opt_result.port_number, &opt_result);
+    TrkWindowsServer server(opt_result.port_number, &opt_result);
 #elif __APPLE__
 	TrkMacOSService service;
 	TrkMacOSServer server(opt_result.port_number, &opt_result);
@@ -270,23 +267,23 @@ int main(int argc, char** argv)
 
 	TrkString ErrorStr = "";
 	service.Initialization();
-	if ((!opt_result.daemon || service.ServiceStart()) && server.Init(ErrorStr))
+    if ((!opt_result.daemon || service.ServiceStart()) && server.Init(ErrorStr))
 	{
-		LOG_OUT("Listening server at " << opt_result.port_number << " port")
+        LOG_OUT("Listening server at " << opt_result.port_number << " port")
 		LOG_OUT("")
 		LOG_OUT("========== INFO ==========")
 		LOG_OUT("Start Time: " << GetTimestamp("%Y/%m/%d %H:%M:%S %z"))
-#ifndef WIN32
-		LOG_OUT("Daemon: " << (opt_result.daemon ? "Enabled" : "Disabled"))
-		LOG_OUT("PID File: " << opt_result.pid_file)
-		LOG_OUT("Log File: " << opt_result.log_path)
+#ifndef _WIN32
+        LOG_OUT("Daemon: " << (opt_result.daemon ? "Enabled" : "Disabled"))
+        LOG_OUT("PID File: " << opt_result.pid_file)
+        LOG_OUT("Log File: " << opt_result.log_path)
 #endif
-		LOG_OUT("Port: " << opt_result.port_number)
-		LOG_OUT("Root: " << opt_result.running_root)
-	
-		if (opt_result.ssl_files_path != "")
+        LOG_OUT("Port: " << opt_result.port_number)
+        LOG_OUT("Root: " << opt_result.running_root)
+
+        if (opt_result.ssl_files_path != "")
 		{
-			LOG_OUT("SSL Files Path: " << opt_result.ssl_files_path)
+            LOG_OUT("SSL Files Path: " << opt_result.ssl_files_path)
 		}
 
 		LOG_OUT("==========================")

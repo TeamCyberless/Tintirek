@@ -1,10 +1,10 @@
 /*
  *	database.cpp
  *
- *	Database functions of Tintirek's Database Library
+ *	Database functions of Tintirek's system
  */
 
-#include "trk_database.h"
+#include "database.h"
 
 #include <chrono>
 

@@ -8,7 +8,7 @@
 #ifndef TRK_PASSWD_H
 #define TRK_PASSWD_H
 
-#include "trk_string.h"
+#include "trkstring.h"
 
 
 /* Helper for password authentication */

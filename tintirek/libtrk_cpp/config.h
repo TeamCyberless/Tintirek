@@ -1,5 +1,5 @@
 /*
- *	trk_config.h
+ *	config.h
  * 
  *  Tintirek's configuration logics.
  */
@@ -11,7 +11,7 @@
 
 
 #include "trk_types.h"
-#include "trk_cmdline.h"
+#include "cmdline.h"
 
 
 

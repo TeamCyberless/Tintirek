@@ -7,7 +7,7 @@
 #ifndef TRK_LOGOUT_COMMAND_H
 #define TRK_LOGOUT_COMMAND_H
 
-#include "trk_cmdline.h"
+#include "cmdline.h"
 
 class TrkCliLogoutCommand : public TrkCliCommand
 {

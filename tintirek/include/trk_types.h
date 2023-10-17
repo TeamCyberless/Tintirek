@@ -4,16 +4,26 @@
  *	Tintirek's data types
  */
 
-
-
 #ifndef TRK_TYPES_H
 #define TRK_TYPES_H
 
-#include <cstdint>
-#include <cstddef>
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #include "trk_string.h"
-#include "trk_map.h"
+
+
+/* Tintirek's Boolean Type */
+typedef int trk_boolean_t;
+
+#ifndef TRUE
+#define TRUE 1
+#endif
+
+#ifndef FALSE
+#define FALSE 0
+#endif
 
 
 /* Revision number. */
@@ -29,7 +39,7 @@ typedef long long trk_commit_number_t;
 #define TRK_INVALID_COMMITNUM ((trk_commit_number_t)-1)
 
 /* UNIX type datetime. */
-typedef int64_t trk_datetime_t;
+typedef long long trk_datetime_t;
 
 /* Forward declaration of the 'trk_version_t' structure. */
 typedef struct trk_version_t trk_version_t;
@@ -60,94 +70,71 @@ typedef struct trk_version_t trk_version_t;
 
 
 /* Stores information to which revision number the given file/folder path is synchronized */
-class TrkPathSyncInfoDict
+typedef struct trk_pathsyncinfo_dictionary_t
 {
-public:
-	TrkPathSyncInfoDict(TrkString Key = "", trk_revision_number_t RevNum = TRK_INVALID_REVNUM, TrkPathSyncInfoDict* NextElement = nullptr)
-		: next_elem(NextElement)
-		, key(Key)
-		, value(RevNum)
-	{ }
-
-protected:
 	/* Next element of this dictionary */
-	TrkPathSyncInfoDict* next_elem;
+	struct trk_pathsyncinfo_dictionary_t* next_elem;
 	/* Key value of this element */
-	TrkString key;
+	const struct trk_string_t* key;
 	/* Revision number */
 	trk_revision_number_t value;
-
-public:
-	/* Get next element */
-	TrkPathSyncInfoDict* GetNext() const { return next_elem; }
-	/* Set next element */
-	void SetNext(TrkPathSyncInfoDict* NewElement) { next_elem = NewElement; }
-
-};
+} trk_pathsyncinfo_dictionary_t;
 
 
 
 /* Workspace info */
-class TrkWorkspaceInfo
+typedef struct trk_workspaceinfo_t
 {
-public:
 	/* Workspace name */
-	TrkString workspace_name;
-
+	const struct trk_string_t* workspace_name;
 	/* Workspace path at owner computer */
-	TrkString workspace_path;
-
+	const struct trk_string_t* workspace_path;
 	/* Workspace owner name */
-	TrkString username;
-
+	const struct trk_string_t* username;
 	/* Workspace hostname */
-	TrkString workspace_hostname;
-
+	const struct trk_string_t* workspace_hostname;
 	/* Workspace's current commit number */
 	trk_commit_number_t current_commit_num;
-
 	/* List of revision information about paths */
-	TrkPathSyncInfoDict rev_info_list;
+	struct trk_pathsyncinfo_dictionary_t* rev_info_list;
+} trk_workspaceinfo_t;
 
-	/* Append path info about revision to list */
-	void AppendToRevInfo(TrkPathSyncInfoDict* NewElement);
-};
+
+/* Append path info about revision to list */
+trk_boolean_t trk_workspaceinfo_appendpath(trk_workspaceinfo_t* workspace_info, trk_pathsyncinfo_dictionary_t* element);
 
 
 
 /* All information about a commit. */
-class TrkCommitInfo
+typedef struct trk_commitinfo_t
 {
-public:
 	/* The number of revision */
 	trk_revision_number_t revision;
-
 	/* Server-side date of the commit. */
-	TrkString date;
-
+	const struct trk_string_t* date;
 	/* Author of the commit. */
-	TrkString author;
-};
+	const struct trk_string_t* author;
+} trk_commitinfo_t;
 
 
 
 /* Lock object for client and server to share. */
-class TrkLock
+typedef struct trk_lock_t
 {
-public:
 	/* the path this lock applies to. */
-	TrkString path;
-
+	const struct trk_string_t* path;
 	/* unique URI representing lock. */
-	TrkString token;
-
+	const struct trk_string_t* token;
 	/* the username which owns the lock. */
-	TrkString owner;
-
+	const struct trk_string_t* owner;
 	/* when lock was made. */
 	trk_datetime_t creation_date;
-};
+} trk_lock_t;
 
 
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* TRK_TYPES_H */

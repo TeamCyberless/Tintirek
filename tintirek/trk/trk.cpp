@@ -12,20 +12,16 @@
 #include <string>
 #include <thread>
 
-#ifdef _WIN32
-#include <ws2tcpip.h>
-#include <openssl/applink.c>
-#endif
-
 #include "trk_types.h"
-#include "trk_cmdline.h"
 #include "trk_version.h"
-#include "trk_config.h"
 #include "trk_client.h"
 #include "trk_core.h"
+#include "trk_cpp.h"
 
+#include "cmdline.h"
 #include "commandline.h"
 #include "connect.h"
+#include "config.h"
 
 
 
@@ -54,8 +50,8 @@ const TrkCliOption trk_cli_options[] =
 /* Prints version information to screen */
 void print_version()
 {
-	TRK_VERSION_DEFINE_PROGRAM(ver_info);
-	std::cout << ver_info << std::endl;
+    TRK_VERSION_DEFINE(ver_info);
+    std::cout << trk_get_full_version_info(&ver_info).data << std::endl;
 }
 
 
@@ -123,10 +119,11 @@ bool return_argument_or_null(TrkString& argument, char opt, int& i, char** argv,
 
 
 /* Library version check */
-const TrkVersion* libVersionList[] =
+const trk_version_checklist_t libVersionList[] =
 {
-	&TrkCoreVerVar,
-	&TrkClientVerVar,
+    { "trk_core", trk_core_version },
+    { "trk_cpp", trk_cpp_version },
+    { "trk_client", trk_client_version },
 	nullptr
 };
 
@@ -137,9 +134,9 @@ int main(int argc, char** argv)
 {
 	/* Check library versions */
 	{
-		TRK_VERSION_DEFINE_PROGRAM(MyVer);
+		TRK_VERSION_DEFINE(MyVer);
 		TrkString ErrorStr;
-		if (!TrkVersionHelper::CheckVersionList(&MyVer, libVersionList, false, ErrorStr))
+        if (!trk_version_check_list(&MyVer, libVersionList, false, &ErrorStr))
 		{
 			std::cerr << ErrorStr << std::endl;
 			return EXIT_FAILURE;
@@ -153,12 +150,12 @@ int main(int argc, char** argv)
 	}
 
 	/* Quick escape for some commands */
-	if (std::strcmp(argv[1], "version") == 0)
+    if (strcmp(argv[1], "version") == 0)
 	{
 		print_version();
 		return EXIT_SUCCESS;
 	}
-	else if (std::strcmp(argv[1], "help") == 0)
+    else if (strcmp(argv[1], "help") == 0)
 	{
 		print_help(argv[2] ? argv[2] : "");
 		return EXIT_SUCCESS;
@@ -170,7 +167,7 @@ int main(int argc, char** argv)
 	/* Get command requested by client */
 	for (const auto& cmd : trk_cli_options)
 	{
-		if (std::strcmp(cmd.command, argv[1]) == 0)
+        if (strcmp(cmd.command, argv[1]) == 0)
 		{
 			opt_result.requested_command = &cmd;
 			break;

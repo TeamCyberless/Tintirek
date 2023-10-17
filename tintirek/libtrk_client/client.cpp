@@ -1,27 +1,31 @@
 /*
  *	client.cpp
  *
- *	Client functions of Tintirek's Client Library
+ *	Client functions of Tintirek's Client Library (C++)
  */
 
+
 #include "trk_client.h"
+#include "trk_string.h"
+#include "cmdline.h"
+#include "crypto.h"
+#include "trkstring.h"
 
 #include <openssl/x509.h>
 #include <openssl/ssl.h>
 #include <filesystem>
 #include <fstream>
+#include <string>
+
 #if _WIN32
 #include <windows.h>
 #include <shlobj.h>
 #endif
 
-#include "trk_cmdline.h"
-#include "crypto.h"
-
 
 TrkString GetCurrentUserDir()
 {
-	TrkString HomeDir = "";
+	TrkString HomeDir;
 #if _WIN32
 	{
 		WCHAR path[MAX_PATH];
@@ -97,7 +101,7 @@ int TrkSSLHelper::ClientVerifyCallback(int preverify, struct x509_store_ctx_st* 
 							TrustFileReader.close();
 
 							// We can trust this certificate but check if we're trying to execute trust command
-							if (ClientOptions->requested_command->command == "trust")
+                            if (ClientOptions->requested_command->command == "trust")
 							{
 								return 0;
 							}
@@ -121,7 +125,7 @@ int TrkSSLHelper::ClientVerifyCallback(int preverify, struct x509_store_ctx_st* 
 		{
 			if (ClientOptions != nullptr)
 			{
-				ClientOptions->last_certificate_fingerprint = TrkString(fingerprint);
+                ClientOptions->last_certificate_fingerprint = TrkString(fingerprint);
 			}
 			return 0;
 		}

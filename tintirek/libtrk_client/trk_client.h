@@ -13,11 +13,14 @@
 
 
 /* Library version definition */
-TRK_VERSION_DEFINE(TrkClientVerVar, "trk_client");
+inline const trk_version_t* trk_client_version(void)
+{
+    TRK_VERSION_BODY;
+}
 
 
 /* Get current user's directory */
-TrkString GetCurrentUserDir();
+class TrkString GetCurrentUserDir();
 
 
 #endif /* TRK_CLIENT_H */

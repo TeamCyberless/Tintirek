@@ -8,7 +8,7 @@
 #define TRK_COMMANDLINE_H
 
 #include "trk_types.h"
-#include "trk_cmdline.h"
+#include "cmdline.h"
 
 /* Includes of all commands */
 #include "commands/add.h"

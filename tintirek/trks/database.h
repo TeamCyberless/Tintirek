@@ -1,18 +1,13 @@
 /*
  *	database.h
  *
- *	Interface for Tintirek's database
+ *	Interface for Tintirek's database system
  */
 
 #ifndef TRK_DATABASE_H
 #define TRK_DATABASE_H
 
 #include "sqlite3.h"
-#include "trk_version.h"
-
-
- /* Library version definition */
-TRK_VERSION_DEFINE(TrkDatabaseVerVar, "trk_database");
 
 
 /* Initialization function for databases */

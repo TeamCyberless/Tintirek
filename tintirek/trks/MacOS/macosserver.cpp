@@ -11,7 +11,7 @@
 #include "../server.h"
 
 
-TrkMacOSServer::TrkMacOSServer(int Port, TrkCliServerOptionResult* Options)
+TrkMacOSServer::TrkMacOSServer(int Port, TrkCliServerOptionResults* Options)
 	: TrkServer(Port, Options)
 {
 

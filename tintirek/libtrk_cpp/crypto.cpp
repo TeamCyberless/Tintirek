@@ -7,6 +7,7 @@
 
 #include "crypto.h"
 
+#include <iostream>
 #include <openssl/ssl.h>
 #include <openssl/err.h>
 #include <openssl/pem.h>
@@ -17,9 +18,8 @@
 #include <filesystem>
 #include <fstream>
 
+#include "cmdline.h"
 #include "trk_types.h"
-#include "trk_cmdline.h"
-
 
 TrkSSL::TrkSSL(struct ssl_st* Client)
 	: ssl_client(Client)
@@ -83,7 +83,7 @@ void TrkSSLHelper::RefreshErrors()
 	ERR_clear_error();
 }
 
-void TrkSSLHelper::SetupProgramOptionsToContext(TrkSSLCTX* Context, class TrkCliOptionResults* Options)
+void TrkSSLHelper::SetupProgramOptionsToContext(TrkSSLCTX* Context, class TrkCliClientOptionResults* Options)
 {
 	SSL_CTX_set_app_data(Context->GetContext(), Options);
 }
@@ -129,7 +129,7 @@ int TrkSSLHelper::ConnectServer(TrkSSL* Client)
 
 int TrkSSLHelper::Write(TrkSSL* Client, TrkString Buf, int Length)
 {
-	int status = SSL_write(Client->GetClient(), Buf, Length);
+	int status = SSL_write(Client->GetClient(), static_cast<const char*>(Buf), Length);
 	if (status <= 0)
 	{
 		std::cout << "Write: " << GetError(Client) << std::endl;
