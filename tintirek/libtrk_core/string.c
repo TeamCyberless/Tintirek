@@ -22,22 +22,18 @@ trk_string_t trk_string_create_empty()
 trk_string_t trk_string_create(const char* string)
 {
 	trk_string_t result;
-	result.data = strdup(string);
 	result.length = strlen(string);
-	return result;
-}
-
-void trk_string_assign(trk_string_t* other, const char* string)
-{
-	if (other != NULL)
+	result.data = (char*)malloc(result.length + 1);
+	if (result.data == NULL)
 	{
-		trk_string_destroy(other);
+		result.length = 0;
+	}
+	else
+	{
+		strcpy(result.data, string);
 	}
 
-	trk_string_t* result = (trk_string_t*)malloc(sizeof(trk_string_t));
-	result->data = strdup(string);
-	result->length = strlen(string);
-	other = &result;
+	return result;
 }
 
 trk_string_t trk_string_duplicate(const trk_string_t* other)
@@ -50,12 +46,25 @@ trk_string_t trk_string_duplicate(const trk_string_t* other)
 
 trk_string_t trk_string_between(const char* start, const char* end)
 {
+	if (start == NULL || end == NULL || start >= end)
+	{
+		return trk_string_create_empty();
+	}
+
 	unsigned int length = end - start;
 	trk_string_t result;
+
 	result.data = (char*)malloc(length + 1);
+	if (result.data == NULL)
+	{
+		result.length = 0;
+		return result;
+	}
+
 	strncpy(result.data, start, length);
 	result.data[length] = '\0';
 	result.length = length;
+
 	return result;
 }
 
@@ -82,9 +91,11 @@ void trk_string_destroy(trk_string_t* other)
 {
 	if (other != NULL)
 	{
-		free(other->data);
+		if (other->data != NULL)
+		{
+			free(other->data);
+		}
 		other->data = NULL;
-		other->length = 0;
 	}
 }
 
@@ -104,27 +115,27 @@ void trk_string_to_upper(trk_string_t* str)
 	}
 }
 
-const char* trk_string_begin(const trk_string_t* str)
+const char* trk_string_begin(trk_string_t* str)
 {
 	return str->data;
 }
 
-const char* trk_string_end(const trk_string_t* str)
+const char* trk_string_end(trk_string_t* str)
 {
 	return str->data + str->length;
 }
 
-char trk_string_first(const trk_string_t* str)
+char trk_string_first(trk_string_t* str)
 {
 	return (str->length > 0) ? str->data[0] : '\0';
 }
 
-char trk_string_last(const trk_string_t* str)
+char trk_string_last(trk_string_t* str)
 {
 	return (str->length > 0) ? str->data[str->length - 1] : '\0';
 }
 
-trk_boolean_t trk_string_starts_with(const trk_string_t* str, const char* prefix)
+trk_boolean_t trk_string_starts_with(trk_string_t* str, const char* prefix)
 {
 	unsigned int prefixLength = strlen(prefix);
 	if (str->length < prefixLength)
@@ -135,12 +146,12 @@ trk_boolean_t trk_string_starts_with(const trk_string_t* str, const char* prefix
 	return strncmp(str->data, prefix, prefixLength) == 0;
 }
 
-unsigned int trk_string_size(const trk_string_t* str)
+unsigned int trk_string_size(trk_string_t* str)
 {
 	return str->length;
 }
 
-unsigned int trk_string_find(const trk_string_t* str, const char* chars, unsigned int startPos)
+unsigned int trk_string_find(trk_string_t* str, const char* chars, unsigned int startPos)
 {
 	const char* result = str->data + startPos;
 	result = strpbrk(result, chars);
@@ -152,29 +163,28 @@ unsigned int trk_string_find(const trk_string_t* str, const char* chars, unsigne
 	return result - str->data;
 }
 
-unsigned int trk_string_find_first_not_of(const trk_string_t* str, const char* chars)
+unsigned int trk_string_find_first_not_of(trk_string_t* str, const char* chars)
 {
-	const char* result = str->data;
-	while (*result && strchr(chars, *result))
-	{
-		++result;
+	for (int i = 0; str->data[i] != '\0'; i++) {
+		if (strchr(chars, str->data[i]) == NULL) {
+			return i;
+		}
 	}
-
-	return (result == str->data) ? npos : result - str->data;
+	return -1;
 }
 
-unsigned int trk_string_find_last_not_of(const trk_string_t* str, const char* chars)
+unsigned int trk_string_find_last_not_of(trk_string_t* str, const char* chars)
 {
-	const char* result = str->data + str->length - 1;
-	while (result >= str->data && strchr(chars, *result))
-	{
-		--result;
+	int len = strlen(str->data);
+	for (int i = len - 1; i >= 0; i--) {
+		if (strchr(chars, str->data[i]) == NULL) {
+			return i;
+		}
 	}
-
-	return (result < str->data) ? npos : result - str->data;
+	return -1;
 }
 
-trk_string_t trk_string_substr(const trk_string_t* str, unsigned int pos, unsigned int count)
+trk_string_t trk_string_substr(trk_string_t* str, unsigned int pos, unsigned int count)
 {
 	if (pos >= str->length)
 	{

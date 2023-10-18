@@ -32,10 +32,6 @@ trk_string_t trk_string_create_empty();
 trk_string_t trk_string_create(const char* string);
 
 
-/* Function to create a trk_string_t. Assigned from C-style string */
-void trk_string_assign(trk_string_t* other, const char* string);
-
-
 /* Function to create a trk_string_t from another trk_string_t */
 trk_string_t trk_string_duplicate(const trk_string_t* other);
 
@@ -65,43 +61,43 @@ void trk_string_to_upper(trk_string_t* str);
 
 
 /* Function to get a pointer to the first character */
-const char* trk_string_begin(const trk_string_t* str);
+const char* trk_string_begin(trk_string_t* str);
 
 
 /* Function to get a pointer past the last character */
-const char* trk_string_end(const trk_string_t* str);
+const char* trk_string_end(trk_string_t* str);
 
 
 /* Function to get the first character */
-char trk_string_first(const trk_string_t* str);
+char trk_string_first(trk_string_t* str);
 
 
 /* Function to get the last character */
-char trk_string_last(const trk_string_t* str);
+char trk_string_last(trk_string_t* str);
 
 
 /* Function to check if the string starts with the specified prefix */
-int trk_string_starts_with(const trk_string_t* str, const char* prefix);
+int trk_string_starts_with(trk_string_t* str, const char* prefix);
 
 
 /* Function to get the size of the string */
-unsigned int trk_string_size(const trk_string_t* str);
+unsigned int trk_string_size(trk_string_t* str);
 
 
 /* Function to find a specific character(s) in the string */
-unsigned int trk_string_find(const trk_string_t* str, const char* chars, unsigned int startPos);
+unsigned int trk_string_find(trk_string_t* str, const char* chars, unsigned int startPos);
 
 
 /* Function to find the first character not in the given character set */
-unsigned int trk_string_find_first_not_of(const trk_string_t* str, const char* chars);
+unsigned int trk_string_find_first_not_of(trk_string_t* str, const char* chars);
 
 
 /* Function to find the last character not in the given character set */
-unsigned int trk_string_find_last_not_of(const trk_string_t* str, const char* chars);
+unsigned int trk_string_find_last_not_of(trk_string_t* str, const char* chars);
 
 
 /* Function to extract a substring from the string */
-trk_string_t trk_string_substr(const trk_string_t* str, unsigned int pos, unsigned int count);
+trk_string_t trk_string_substr(trk_string_t* str, unsigned int pos, unsigned int count);
 
 
 /* Function to erase a portion of the string */

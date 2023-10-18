@@ -55,7 +55,13 @@ trk_boolean_t trk_version_check_list(const trk_version_t* my_version, const trk_
 			!trk_version_equal(my_version, current_check) :
 			!trk_version_compatible(my_version, current_check))
 		{
-			trk_string_assign(error_str, "");
+			trk_string_destroy(error_str);
+			error_str = (trk_string_t*)malloc(sizeof(trk_string_t));
+			if (error_str != NULL)
+			{
+				error_str->data = "";
+				error_str->length = 0;
+			}
 			
             trk_string_append_cstr(error_str, trk_string_create("Version mismatch in "));
             trk_string_append_cstr(error_str, trk_string_create(check_list[i].label));
