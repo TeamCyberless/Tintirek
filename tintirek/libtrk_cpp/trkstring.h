@@ -16,9 +16,7 @@ class TrkString : public trk_string_t
 {
 public:
     /* Default constructor */
-	TrkString()
-		: data(nullptr)
-	{ }
+	TrkString();
 
 	/* Construct from trk_string_t structure */
 	TrkString(const trk_string_t& value);
@@ -36,11 +34,7 @@ public:
 	TrkString(int Reserve);
 
 	/* Destructor */
-	~TrkString()
-	{
-		trk_string_destroy(data);
-	}
-
+	~TrkString();
 
 	/* Convert all characters to lowercase */
 	void ToLower();
@@ -106,9 +100,9 @@ public:
 	{
 		std::stringstream ss;
 
-		if (data != nullptr && data->data != nullptr)
+		if (data.data != nullptr)
 		{
-			ss << data->data;
+			ss << data.data;
 		}
 
 		ss << value;
@@ -119,7 +113,7 @@ public:
 
 protected:
 	/* Internal string system */
-	trk_string_t* data;
+	trk_string_t data;
 
 public:
 	/* Null position number */

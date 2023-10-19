@@ -207,15 +207,14 @@ target_link_libraries(trk PRIVATE
 #################### TESTING ####################
 
 
-# Include main libraries of Tintirek for testing
-
-set(GTEST_ROOT "${CMAKE_CURRENT_LIST_DIR}/deps/googletest")
-find_package(GTest)
-
+# Include Tintirek's testing functions
 if (TINTIREK_TEST)
 	# List of unit test files
 	set(UNIT_TEST_SOURCES
+		"test/memory_leak.h"
 		"test/trk_string_test.cpp"
+		"test/string_test.cpp"
+		"test/database_test.cpp"
 	)
 
 	# Add the unit test executable
@@ -255,5 +254,5 @@ if (TINTIREK_TEST)
 		COMMAND $<TARGET_FILE:trk_unit_test>
 	)
 else()
-	message(STATUS"Test build disabled")
+	message(STATUS "Test build disabled")
 endif()

@@ -268,7 +268,7 @@ func getgtest(projectRoot string, gtest string, gtestVer string) {
 			return
 		}
 	} else {
-		cmakegenerate := exec.Command("cmake", ".")
+		cmakegenerate := exec.Command("cmake", ".", "-DBUILD_GMOCK=OFF", "-DGTEST_DISABLE_PTHREADS=ON")
 		cmakebuild := exec.Command("cmake", "--build", ".", "--config", "Release")
 
 		cmakegenerate.Stdout = os.Stdout
@@ -298,12 +298,12 @@ func getgtest(projectRoot string, gtest string, gtestVer string) {
 			return
 		}
 
-		if err := tools.Copy(filepath.Join(tempDir, gtest, "googlemock", "include"), filepath.Join(depsDir, "googletest", "include")); err != nil {
+		if err := tools.Copy(filepath.Join(tempDir, gtest, "googletest"), filepath.Join(depsDir, "googletest", "googletest")); err != nil {
 			fmt.Println("Error:", err)
 			return
 		}
 
-		if err := tools.Copy(filepath.Join(tempDir, gtest, "googletest", "include"), filepath.Join(depsDir, "googletest", "include")); err != nil {
+		if err := tools.Copy(filepath.Join(tempDir, gtest, "CMakeLists.txt"), filepath.Join(depsDir, "googletest", "CMakeLists.txt")); err != nil {
 			fmt.Println("Error:", err)
 			return
 		}

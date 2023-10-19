@@ -19,9 +19,10 @@ if (-Not (Get-Command -Name "ninja" -ErrorAction SilentlyContinue)) {
 }
 
 Set-Location $tempPath/$gtest
-cmake . -DBUILD_GMOCK=OFF
+cmake . -DBUILD_GMOCK=OFF -DGTEST_DISABLE_PTHREADS=ON
 cmake --build . --config Release
 
 New-Item -ItemType Directory -Path "$depsPath\googletest"
-Copy-Item -Path "$tempPath\$gtest\lib\Release" "$depsPath\googletest\lib" -Recurse
-Copy-Item -Path "$tempPath\$gtest\googletest\include" "$depsPath\googletest\include" -Recurse
+Copy-Item -Path "$tempPath\$gtest\lib" "$depsPath\googletest\lib" -Recurse
+Copy-Item -Path "$tempPath\$gtest\googletest" "$depsPath\googletest\googletest" -Recurse
+Copy-Item -Path "$tempPath\$gtest\CMakeLists.txt" "$depsPath\googletest\CMakeLists.txt" -Recurse

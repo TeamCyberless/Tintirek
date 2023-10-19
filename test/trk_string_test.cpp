@@ -4,28 +4,8 @@
 
 #include <trk_string.h>
 #include <string>
-#include <crtdbg.h>
 #include <gtest/gtest.h>
-
-class MemoryLeakDetector {
-public:
-	MemoryLeakDetector() {
-		_CrtMemCheckpoint(&memState_);
-	}
-
-	~MemoryLeakDetector() {
-		_CrtMemState stateNow, stateDiff;
-		_CrtMemCheckpoint(&stateNow);
-		int diffResult = _CrtMemDifference(&stateDiff, &memState_, &stateNow);
-		if (diffResult)
-			reportFailure(stateDiff.lSizes[1]);
-	}
-private:
-	void reportFailure(unsigned int unfreedBytes) {
-		FAIL() << "Memory leak of " << unfreedBytes << " byte(s) detected.";
-	}
-	_CrtMemState memState_;
-};
+#include "memory_leak.h"
 
 
 namespace TrkCore
@@ -152,9 +132,4 @@ namespace TrkCore
 		EXPECT_EQ(str->length, 22);
 		trk_string_destroy(str);
 	}
-}
-
-int main(int argc, char** argv) {
-	::testing::InitGoogleTest(&argc, argv);
-	return RUN_ALL_TESTS();
 }
