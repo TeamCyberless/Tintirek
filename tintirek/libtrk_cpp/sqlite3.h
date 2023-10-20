@@ -76,11 +76,11 @@ namespace TrkSqlite
 		/* Opens the database from provided filename */
 		TrkDatabase(const TrkString Filename, const int Flags = TrkSqlite::OPEN_READONLY);
 
-		/* Disables copy and allows moving */
+		/* Disables copy and move */
 		TrkDatabase(const TrkDatabase&) = delete;
 		TrkDatabase& operator=(const TrkDatabase&) = delete;
-		TrkDatabase(TrkDatabase&& Database) = default;
-		TrkDatabase& operator=(TrkDatabase&& Database) = default;
+		TrkDatabase(TrkDatabase&& Database) = delete;
+		TrkDatabase& operator=(TrkDatabase&& Database) = delete;
 
 		/* Deleter functor to use with smart pointers to close the SQLite database connection */
 		struct Deleter

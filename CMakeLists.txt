@@ -167,13 +167,7 @@ add_library(sqlite3 STATIC
 	"deps/sqlite-amalgamation/sqlite3.c"
 	"deps/sqlite-amalgamation/sqlite3.h"
 )
-
-if (WIN32)
-    if (BUILD_SHARED_LIBS)
-            add_definitions("-DSQLITE_API=__declspec(dllexport)")
-    endif()
-endif()
-
+target_compile_definitions(sqlite3 PRIVATE "SQLITE_API=__declspec(dllexport)")
 add_library(SQLite::SQLite3 ALIAS sqlite3)
 
 # OpenSSL library
@@ -182,7 +176,7 @@ find_package(OpenSSL REQUIRED)
 
 # Add libraries to project
 target_link_libraries(trk_cpp PRIVATE 
-	sqlite3
+	SQLite::SQLite3
 	OpenSSL::SSL
 	OpenSSL::Crypto
 )
