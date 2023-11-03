@@ -33,6 +33,10 @@ namespace TrkSqlite
 	const int OPEN_NOFOLLOW = 0x01000000;
 	const int OK = 0;
 
+	const int CODE_ERROR = 1;
+	const int CODE_CONSTRAINT = 19;
+	const int CODE_CONSTRAINT_PRIMARYKEY = (CODE_CONSTRAINT | (6 << 8));
+
 	const int INTEGER = 1;
 	const int FLOAT = 2;
 	const int TEXT = 3;
@@ -54,13 +58,12 @@ namespace TrkSqlite
 		explicit TrkDatabaseException(const TrkString ErrorMessage) : TrkDatabaseException(ErrorMessage, -1) {}
 		explicit TrkDatabaseException(sqlite3* Database);
 
-
 		/* Returns the error code (if there's any, otherwise will return -1) */
 		int GetErrorCode() const { return errcode; }
 		/* Returns the extended error code (if there's any, otherwise will return -1) */
 		int GetExtendedErrorCode() const { return errextndcode; }
 
-	private:
+	public:
 		/* Error code value */
 		int errcode;
 		/* Extended error code value */

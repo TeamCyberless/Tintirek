@@ -12,8 +12,8 @@ project (tintirek_project)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
-set(CMAKE_CXX_FLAGS_RELEASE "/MT")
-set(CMAKE_CXX_FLAGS_DEBUG "/MTd")
+set(CMAKE_CXX_FLAGS_RELEASE "/MD")
+set(CMAKE_CXX_FLAGS_DEBUG "/MDd /Zi /Od")
 set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 
 # Options
@@ -37,8 +37,8 @@ if (MSVC)
         CMAKE_CXX_FLAGS_MINSIZEREL
 		CMAKE_CXX_FLAGS_RELWITHDEBINFO)
 
-		string(REGEX REPLACE "/MDd" "/MTd" ${flag} "${${flag}}")
-		string(REGEX REPLACE "/MD" "/MT" ${flag} "${${flag}}")
+		string(REGEX REPLACE "/MTd" "/MDd" ${flag} "${${flag}}")
+		string(REGEX REPLACE "/MT" "/MD" ${flag} "${${flag}}")
 
     endforeach()
 endif()

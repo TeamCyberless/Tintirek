@@ -227,6 +227,8 @@ TrkString TrkString::substr(size_t pos, size_t count) const
 	}
 
 	TrkString result;
+	free(result.data.data);
+
 	result.data.length = count;
 	result.data.data = new char[count + 1];
 	std::strncpy(result.data.data, data.data + pos, count);

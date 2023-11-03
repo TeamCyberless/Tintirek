@@ -135,6 +135,27 @@ char trk_string_last(trk_string_t* str)
 	return (str->length > 0) ? str->data[str->length - 1] : '\0';
 }
 
+int trk_string_strcmp(trk_string_t* str1, trk_string_t* str2)
+{
+	for (size_t i = 0; i < str1->length && i < str2->length; i++) {
+		if (str1->data[i] < str2->data[i]) {
+			return -1;
+		}
+		else if (str1->data[i] > str2->data[i]) {
+			return 1;
+		}
+	}
+
+	if (str1->length < str2->length) {
+		return -1;
+	}
+	else if (str1->length > str2->length) {
+		return 1;
+	}
+
+	return 0;
+}
+
 trk_boolean_t trk_string_starts_with(trk_string_t* str, const char* prefix)
 {
 	unsigned int prefixLength = strlen(prefix);

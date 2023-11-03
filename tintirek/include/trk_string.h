@@ -76,6 +76,10 @@ char trk_string_first(trk_string_t* str);
 char trk_string_last(trk_string_t* str);
 
 
+/* Function to compare two trk_string_t */
+int trk_string_strcmp(trk_string_t* str1, trk_string_t* str2);
+
+
 /* Function to check if the string starts with the specified prefix */
 int trk_string_starts_with(trk_string_t* str, const char* prefix);
 

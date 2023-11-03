@@ -70,10 +70,23 @@ namespace TrkCore
 		trk_string_t* str = &trk_string_create("XYZ");
 		EXPECT_TRUE(trk_string_begin(str) == &str->data[0]);
 		EXPECT_TRUE(trk_string_end(str) == &str->data[str->length]);
-		EXPECT_TRUE(strcmp(trk_string_create_char(trk_string_first(str)).data, "X") == 0);
-		EXPECT_TRUE(strcmp(trk_string_create_char(trk_string_last(str)).data, "Z") == 0);
+
+		{
+			trk_string_t first_char = trk_string_create_char(trk_string_first(str)),
+				last_char = trk_string_create_char(trk_string_last(str)),
+				X = trk_string_create_char('X'),
+				Z = trk_string_create_char('Z');
+
+			EXPECT_TRUE(trk_string_strcmp(&first_char, &X) == 0);
+			EXPECT_TRUE(trk_string_strcmp(&last_char, &Z) == 0);
+			trk_string_destroy(&first_char);
+			trk_string_destroy(&last_char);
+			trk_string_destroy(&X);
+			trk_string_destroy(&Z);
+		}
+
 		EXPECT_TRUE(trk_string_starts_with(str, "XY"));
-		EXPECT_TRUE(trk_string_size(str), 3);
+		EXPECT_TRUE(trk_string_size(str) == 3);
 		EXPECT_TRUE(trk_string_find(str, "W", 0), npos);
 		EXPECT_TRUE(trk_string_find(str, "X", 1), npos);
 		EXPECT_TRUE(trk_string_find(str, "Z", 0), 2);
@@ -101,6 +114,7 @@ namespace TrkCore
 
 	TEST(TrkString, Substring) {
 		MemoryLeakDetector leakDetector;
+		
 		trk_string_t* str = &trk_string_create("SUBSTR_TEST"), * returned;
 
 		returned = &trk_string_substr(str, 6, npos);
@@ -112,10 +126,13 @@ namespace TrkCore
 		EXPECT_STREQ(returned->data, "TEST");
 		EXPECT_EQ(returned->length, 4);
 		trk_string_destroy(returned);
+
+		trk_string_destroy(str);
 	}
 
 	TEST(TrkString, EraseString) {
 		MemoryLeakDetector leakDetector;
+		
 		trk_string_t* str = &trk_string_create("SUBSTR_TEST");
 
 		trk_string_erase(str, 6, 1);
@@ -126,10 +143,12 @@ namespace TrkCore
 		EXPECT_EQ(str->length, 4);
 		trk_string_destroy(str);
 
+		trk_string_t test_str = trk_string_create(" Tintirek");
 		str = &trk_string_create("TeamCyberless");
-		trk_string_append_cstr(str, trk_string_create(" Tintirek"));
+		trk_string_append_cstr(str, test_str);
 		EXPECT_STREQ(str->data, "TeamCyberless Tintirek");
 		EXPECT_EQ(str->length, 22);
 		trk_string_destroy(str);
+		trk_string_destroy(&test_str);
 	}
 }
