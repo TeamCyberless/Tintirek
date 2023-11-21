@@ -479,6 +479,7 @@ sqlite3_stmt* TrkSqlite::TrkStatement::GetPreparedStatement() const
 
 TrkSqlite::TrkTransaction::TrkTransaction(TrkDatabase& Database)
 	: database(Database)
+	, Commited(false)
 {
 	database.Execute("BEGIN TRANSACTION");
 }

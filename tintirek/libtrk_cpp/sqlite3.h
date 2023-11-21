@@ -33,9 +33,13 @@ namespace TrkSqlite
 	const int OPEN_NOFOLLOW = 0x01000000;
 	const int OK = 0;
 
+	const int ROW = 100;
+	const int DONE = 101;
+
 	const int CODE_ERROR = 1;
 	const int CODE_CONSTRAINT = 19;
 	const int CODE_CONSTRAINT_PRIMARYKEY = (CODE_CONSTRAINT | (6 << 8));
+	const int CODE_RANGE = 25;
 
 	const int INTEGER = 1;
 	const int FLOAT = 2;
@@ -123,11 +127,11 @@ namespace TrkSqlite
 		TrkStatement(const TrkDatabase& Database, TrkString Query);
 		~TrkStatement() = default;
 
-		/* Disables copy and allows moving */
+		/* Disables copy and move */
 		TrkStatement(const TrkStatement&) = delete;
 		TrkStatement& operator=(const TrkStatement&) = delete;
-		TrkStatement(TrkStatement&& Database);
-		TrkStatement& operator=(TrkStatement&& Database) = default;
+		TrkStatement(TrkStatement&& Database) = delete;
+		TrkStatement& operator=(TrkStatement&& Database) = delete;
 
 		/* Execute a step of the prepared query to fetch one row of results */
 		bool ExecuteStep();
