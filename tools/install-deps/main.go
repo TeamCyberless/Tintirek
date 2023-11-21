@@ -381,8 +381,8 @@ func main() {
 		getgtest(PROJECT_DIR, GTEST, GTEST_VERSION)
 	}
 
-	/*if err := os.RemoveAll(filepath.Join(PROJECT_DIR, "temp")); err != nil {
+	if err := os.RemoveAll(filepath.Join(PROJECT_DIR, "temp")); err != nil {
 		fmt.Println("Error", err)
 		return
-	}*/
+	}
 }

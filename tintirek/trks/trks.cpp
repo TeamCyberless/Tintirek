@@ -10,6 +10,8 @@
 #include <fstream>
 #include <unistd.h>
 #include <fcntl.h>
+#else
+#include "openssl/applink.c"
 #endif
 
 #include <filesystem>
