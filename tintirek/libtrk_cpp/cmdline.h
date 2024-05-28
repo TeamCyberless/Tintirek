@@ -10,7 +10,6 @@
 #define TRK_CMDLINE_H
 
 #include "trk_types.h"
-#include "trkstring.h"
 
 
 /* Forward declaration for option class */
@@ -38,7 +37,7 @@ public:
     /* Stores requested command */
     const TrkCliOption* requested_command = nullptr;
     /* If any, stores command parameter. Watch out! can be null. */
-    TrkString command_parameter = "";
+    std::string command_parameter = "";
 
 
     /* If true, result will not effect anything, just for preview */
@@ -56,9 +55,9 @@ public:
 
 
     /* Type of file affected by the process */
-    TrkString filetype = "";
+    std::string filetype = "";
     /* Process description */
-    TrkString description = "";
+    std::string description = "";
 
 
     /* Determines how many files will be affected */
@@ -73,30 +72,30 @@ class TrkCliClientOptionResults : public TrkCliOptionResults
 {
 public:
     /* Home directory path of our workspace */
-    TrkString workspace_path = "";
+    std::string workspace_path = "";
     /* The connection addres of the server we want to connect to */
-    TrkString server_url = "";
+    std::string server_url = "";
     /* The name of the user who will establish the connection */
-    TrkString username = "";
+    std::string username = "";
     /* The user's password. Maybe will be encrypted */
-    TrkString password = "";
+    std::string password = "";
     /* If true, trusts remote connection */
     bool trust = false;
 
     /* Stores the fingerprint of the last unverified certificate */
-    TrkString last_certificate_fingerprint = "";
+    std::string last_certificate_fingerprint = "";
 
     /* Found IP address from server_url */
-    TrkString ip_address = "";
+    std::string ip_address = "";
     /* Found port number from server_url */
     uint16_t port = 0;
 
     /* Server-side version info */
-    TrkString server_version = "";
+    std::string server_version = "";
     /* Server-side uptime info */
-    TrkString server_uptime = "";
+    std::string server_uptime = "";
     /* Server-side time info */
-    TrkString server_time = "";
+    std::string server_time = "";
 };
 
 /* Results of server-side */
@@ -110,16 +109,16 @@ public:
     long long start_timestamp = 0;
 
     /* PID file path */
-    TrkString pid_file = "";
+    std::string pid_file = "";
 
     /* Server running root path */
-    TrkString running_root = "";
+    std::string running_root = "";
 
     /* Server SSL files path */
-    TrkString ssl_files_path = "";
+    std::string ssl_files_path = "";
 
     /* Log file destination */
-    TrkString log_path = "";
+    std::string log_path = "";
 
     /* Server running port */
     uint16_t port_number = 5566;
@@ -156,7 +155,7 @@ class TrkCliOptionFlag
     friend class TrkCliOption;
 
 public:
-    TrkCliOptionFlag(const char Character, const TrkString Description, const TrkString ParameterName = "")
+    TrkCliOptionFlag(const char Character, const std::string Description, const std::string ParameterName = "")
         : character(Character)
         , description(Description)
         , required_parameter(ParameterName != "")
@@ -171,10 +170,10 @@ public:
     bool required_parameter;
 
     /* Flag parameter name if it's required */
-    TrkString parameter_name;
+    std::string parameter_name;
 
     /* The description of this flag */
-    TrkString description;
+    std::string description;
 
 protected:
     /* Linked list's next element */
@@ -185,7 +184,7 @@ protected:
      *
      *  Must be called from TrkCliOption
      */
-    static TrkString Display(TrkCliOption* opt);
+    static std::string Display(TrkCliOption* opt);
 
     /*
      *	Creates a linked list from given array
@@ -248,7 +247,7 @@ public:
 class TrkCliOption
 {
 public:
-    TrkCliOption(const TrkString Command, TrkCliCommand* CommandUtilities, const TrkString Description, TrkCliRequiredOption RequiredParameter = TrkCliRequiredOption::NOT_ALLOWED, TrkString ParameterName = "")
+    TrkCliOption(const std::string Command, TrkCliCommand* CommandUtilities, const std::string Description, TrkCliRequiredOption RequiredParameter = TrkCliRequiredOption::NOT_ALLOWED, std::string ParameterName = "")
         : command(Command)
         , cmd_util(CommandUtilities)
         , description(Description)
@@ -257,7 +256,7 @@ public:
         , parameter_name(ParameterName)
     { }
 
-    TrkCliOption(const TrkString Command, TrkCliCommand* CommandUtilities, const TrkString Description, TrkCliOptionFlag* Flags = {}, size_t FlagSize = 0, TrkCliRequiredOption RequiredParameter = TrkCliRequiredOption::NOT_ALLOWED, const TrkString ParameterName = "")
+    TrkCliOption(const std::string Command, TrkCliCommand* CommandUtilities, const std::string Description, TrkCliOptionFlag* Flags = {}, size_t FlagSize = 0, TrkCliRequiredOption RequiredParameter = TrkCliRequiredOption::NOT_ALLOWED, const std::string ParameterName = "")
         : command(Command)
         , cmd_util(CommandUtilities)
         , description(Description)
@@ -267,7 +266,7 @@ public:
     { }
 
     /* Command text */
-    const TrkString command;
+    const std::string command;
 
     /* Flags */
     TrkCliOptionFlag* head_flag;
@@ -279,13 +278,13 @@ public:
     TrkCliRequiredOption required_parameter;
 
     /* Parameter name if it's required */
-    TrkString parameter_name;
+    std::string parameter_name;
 
     /* The description of this command */
-    TrkString description;
+    std::string description;
 
     /* Get all flags for help text */
-    TrkString GetFlagsForHelpText();
+    std::string GetFlagsForHelpText();
 };
 
 #endif /* TRK_CMDLINE_H */

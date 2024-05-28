@@ -10,6 +10,7 @@
 #include <WinSock2.h>
 #include <ws2tcpip.h>
 #include <thread>
+#include <sstream>
 
 #pragma comment(lib, "ws2_32.lib")
 
@@ -28,7 +29,7 @@ TrkWindowsServer::TrkWindowsServer(int Port, TrkCliServerOptionResults* Options)
 	FD_ZERO(master);
 }
 
-bool TrkWindowsServer::Init(TrkString& ErrorStr)
+bool TrkWindowsServer::Init(std::string& ErrorStr)
 {
 	WSADATA wsaData;
 	if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0)
@@ -97,7 +98,9 @@ bool TrkWindowsServer::Init(TrkString& ErrorStr)
 
             if (!TrkSSLHelper::LoadSSLFiles(ssl_ctx, opt_result->ssl_files_path))
 			{
-                ErrorStr << "Certificate files didn't load: " << opt_result->ssl_files_path;
+				std::stringstream ss;
+                ss << "Certificate files didn't load: " << opt_result->ssl_files_path;
+				ErrorStr = ss.str();
 				delete master;
 				closesocket(server_socket);
 				WSACleanup();
@@ -107,7 +110,9 @@ bool TrkWindowsServer::Init(TrkString& ErrorStr)
 		}
 		catch (std::exception ex)
 		{
-			ErrorStr << "Error in SSL initialization: " << ex.what();
+			std::stringstream ss;
+			ss << "Error in SSL initialization: " << ex.what();
+			ErrorStr = ss.str();
 			delete master;
 			closesocket(server_socket);
 			WSACleanup();
@@ -119,7 +124,7 @@ bool TrkWindowsServer::Init(TrkString& ErrorStr)
 	return true;
 }
 
-bool TrkWindowsServer::Run(TrkString& ErrorStr)
+bool TrkWindowsServer::Run(std::string& ErrorStr)
 {
     bool ssl_active = opt_result->ssl_files_path != "";
 	fd_set readSet = *master;
@@ -131,7 +136,9 @@ bool TrkWindowsServer::Run(TrkString& ErrorStr)
 	if (activity == SOCKET_ERROR)
 	{
 		int error_code = WSAGetLastError();
-		ErrorStr << "There's something went wrong. (err: SERVER01-" << std::to_string(error_code) << ")";
+		std::stringstream ss;
+		ss << "There's something went wrong. (err: SERVER01-" << std::to_string(error_code) << ")";
+		ErrorStr = ss.str();
 		return false;
 	}
 	else
@@ -148,12 +155,14 @@ bool TrkWindowsServer::Run(TrkString& ErrorStr)
 
 					char ip[INET_ADDRSTRLEN];
 					inet_ntop(AF_INET, &clientAddr.sin_addr, ip, INET_ADDRSTRLEN);
-					TrkString ss;
+					std::stringstream ss;
 					ss << ip << ":" << htons(clientAddr.sin_port);
 
 					if (clientSocket == INVALID_SOCKET)
 					{
-						ErrorStr << "Client accept error: " << ss;
+						std::stringstream errorBuilder;
+						errorBuilder << "Client accept error: " << ss.str();
+						ErrorStr = errorBuilder.str();
 						continue;
 					}
 
@@ -169,7 +178,9 @@ bool TrkWindowsServer::Run(TrkString& ErrorStr)
 					{
 						if (ssl_active != (clientResponse[4] == 0x01)) // 1: tls mode active, 0: tls mode deactive
 						{
-							ErrorStr << "TLS mode mismatch, terminating connection: " << ss;
+							std::stringstream errorBuilder;
+							errorBuilder << "TLS mode mismatch, terminating connection: " << ss.str();
+							ErrorStr = errorBuilder.str();
 
                             unsigned char response[5];
                             response[0] = 0xEA;
@@ -190,7 +201,7 @@ bool TrkWindowsServer::Run(TrkString& ErrorStr)
 						}
 						else
 						{
-							LOG_OUT("Client-Server TLS check-up completed: " << ss);
+							LOG_OUT("Client-Server TLS check-up completed: " << ss.str());
 
                             unsigned char response[5];
                             response[0] = 0xEA;
@@ -210,7 +221,9 @@ bool TrkWindowsServer::Run(TrkString& ErrorStr)
 					}
 					else
 					{
-						ErrorStr << "Invalid custom packet received, terminating connection: " << ss;
+						std::stringstream errorBuilder;
+						errorBuilder << "Invalid custom packet received, terminating connection: " << ss.str();
+						ErrorStr = errorBuilder.str();
 						closesocket(clientSocket);
 						continue;
 					}
@@ -224,12 +237,16 @@ bool TrkWindowsServer::Run(TrkString& ErrorStr)
 							TrkSSLHelper::RefreshErrors();
 							if (TrkSSLHelper::GetError(ssl) == 6)
 							{
-								ErrorStr << "Client disconnected during SSL (errno: 6)";
+								std::stringstream errorBuilder;
+								errorBuilder << "Client disconnected during SSL (errno: 6)";
+								ErrorStr = errorBuilder.str();
 							}
 							else
 							{
 								TrkSSLHelper::PrintErrors();
-								ErrorStr << "SSL error (errno: " << TrkSSLHelper::GetError(ssl) << ")";
+								std::stringstream errorBuilder;
+								errorBuilder << "SSL error (errno: " << TrkSSLHelper::GetError(ssl) << ")";
+								ErrorStr = errorBuilder.str();
 							}
 							
 							delete ssl;
@@ -238,8 +255,8 @@ bool TrkWindowsServer::Run(TrkString& ErrorStr)
 						}
 					}
 
-					TrkClientInfo* client = new TrkClientInfo(&clientAddr, clientSocket, ssl, ss);
-					LOG_OUT("Connection established: " << ss);
+					TrkClientInfo* client = new TrkClientInfo(&clientAddr, clientSocket, ssl, ss.str());
+					LOG_OUT("Connection established: " << ss.str());
 					AppendToListUnique(client);
 					std::thread(&TrkServer::HandleConnection, this, client).detach();
 				}
@@ -250,7 +267,7 @@ bool TrkWindowsServer::Run(TrkString& ErrorStr)
 	return true;
 }
 
-bool TrkWindowsServer::Cleanup(TrkString& ErrorStr)
+bool TrkWindowsServer::Cleanup(std::string& ErrorStr)
 {
 	for (int i = 0; i <= max_socket; ++i)
 	{

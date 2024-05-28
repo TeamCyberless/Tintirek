@@ -38,7 +38,7 @@ namespace TrkCpp
 	{
 		MemoryLeakDetector leakDetector;
 
-		TrkString message = "error message";
+		std::string message = "error message";
 		const TrkDatabaseException ex1(message, 1);
 		TrkDatabaseException ex2("another error message", 2);
 
@@ -53,7 +53,7 @@ namespace TrkCpp
 	{
 		MemoryLeakDetector leakDetector;
 
-		const TrkString message = "Some Error";
+		const std::string message = "Some Error";
 		try
 		{
 			throw TrkDatabaseException(message);
@@ -69,7 +69,7 @@ namespace TrkCpp
 		MemoryLeakDetector leakDetector;
 
 		const char msg1[] = "some error";
-		const TrkString msg2 = "another error";
+		const std::string msg2 = "another error";
 		{
 			const TrkDatabaseException ex(msg1);
 			EXPECT_STREQ(ex.what(), msg1);
@@ -244,7 +244,7 @@ namespace TrkCpp
 			EXPECT_EQ(2, db.GetLastInsertRowID());
 			EXPECT_EQ(2, db.GetTotalChanges());
 
-			TrkString insert("INSERT INTO test VALUES (NULL, \"third\")");
+			std::string insert("INSERT INTO test VALUES (NULL, \"third\")");
 			EXPECT_EQ(TrkSqlite::OK, db.TryExecute(insert));
 			EXPECT_EQ(1, db.GetChanges());
 			EXPECT_EQ(3, db.GetLastInsertRowID());
@@ -446,7 +446,7 @@ namespace TrkCpp
 			query.ExecuteStep();
 			EXPECT_TRUE(query.HasRow());
 			const int64_t		id = query.GetColumn(0);
-			const TrkString		msg = query.GetColumn(1);
+			const std::string		msg = query.GetColumn(1);
 			const int			integer = query.GetColumn(2);
 			const int64_t		integer2 = query.GetColumn(2);
 			const double		real = query.GetColumn(3);
@@ -491,7 +491,7 @@ namespace TrkCpp
 			EXPECT_EQ(query.TryExecuteStep(), TrkSqlite::ROW);
 			EXPECT_TRUE(query.HasRow());
 			const int64_t		id = query.GetColumn(0);
-			const TrkString		msg = query.GetColumn(1);
+			const std::string		msg = query.GetColumn(1);
 			const int			integer = query.GetColumn(2);
 			const int64_t		integer2 = query.GetColumn(2);
 			const double		real = query.GetColumn(3);
@@ -582,7 +582,7 @@ namespace TrkCpp
 			insert.ClearBindings();
 
 			{
-				const TrkString   fourth("fourth");
+				const std::string   fourth("fourth");
 				const int64_t       int64 = 12345678900000LL;
 				const float         float32 = 0.234f;
 				insert.Bind(1, fourth);
@@ -688,7 +688,7 @@ namespace TrkCpp
 			insert.ClearBindings();
 
 			{
-				const TrkString		second("second");
+				const std::string		second("second");
 				const int32_t		int32 = -123;
 				const int64_t		int64 = 12345678900000LL;
 				const float			float32 = 0.234f;
@@ -758,10 +758,10 @@ namespace TrkCpp
 
 			TrkStatement insert(db, "INSERT INTO test VALUES (NULL, @msg, @int, @double, @long)");
 
-			const TrkString amsg = "@msg";
-			const TrkString aint = "@int";
-			const TrkString along = "@long";
-			const TrkString adouble = "@double";
+			const std::string amsg = "@msg";
+			const std::string aint = "@int";
+			const std::string along = "@long";
+			const std::string adouble = "@double";
 
 			insert.Bind(amsg, "first");
 			insert.Bind(aint, 123);
@@ -786,7 +786,7 @@ namespace TrkCpp
 			insert.ClearBindings();
 
 			{
-				const TrkString		second("second");
+				const std::string		second("second");
 				const int64_t		int64 = 12345678900000LL;
 				const int64_t		integer = -123;
 				const float			float32 = 0.234f;
@@ -858,7 +858,7 @@ namespace TrkCpp
 			ASSERT_EQ(1, db.Execute("INSERT INTO test VALUES (\"first\", NULL, 0.123)"));
 			ASSERT_EQ(1, db.Execute("INSERT INTO test VALUES (\"first\", 123,  NULL)"));
 
-			const TrkString select("SELECT * FROM test");
+			const std::string select("SELECT * FROM test");
 			TrkStatement query(db, select);
 			EXPECT_EQ(select, query.GetQuery());
 			EXPECT_EQ(3, query.GetColumnCount());
@@ -913,7 +913,7 @@ namespace TrkCpp
 			ASSERT_EQ(1, db.Execute("INSERT INTO test VALUES (\"first\", NULL, 0.123)"));
 			ASSERT_EQ(1, db.Execute("INSERT INTO test VALUES (\"first\", 123,  NULL)"));
 
-			const TrkString select("SELECT * FROM test");
+			const std::string select("SELECT * FROM test");
 			TrkStatement query(db, select);
 			EXPECT_EQ(select, query.GetQuery());
 			EXPECT_EQ(3, query.GetColumnCount());
@@ -978,7 +978,7 @@ namespace TrkCpp
 			EXPECT_THROW(query.GetColumn("unknown"), TrkDatabaseException);
 			EXPECT_THROW(query.GetColumn(""), TrkDatabaseException);
 
-			const TrkString		msg = query.GetColumn("msg");
+			const std::string		msg = query.GetColumn("msg");
 			const int			integer = query.GetColumn("int");
 			const double		real = query.GetColumn("double");
 			EXPECT_STREQ("first", msg);
@@ -998,8 +998,8 @@ namespace TrkCpp
 			TrkStatement query(db, "SELECT id, msg as value FROM test");
 			query.ExecuteStep();
 
-			const TrkString name0 = query.GetColumnName(0);
-			const TrkString name1 = query.GetColumnName(1);
+			const std::string name0 = query.GetColumnName(0);
+			const std::string name1 = query.GetColumnName(1);
 			EXPECT_STREQ("id", name0);
 			EXPECT_STREQ("value", name1);
 		}

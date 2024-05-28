@@ -6,16 +6,15 @@
 
 
 #include "trk_client.h"
-#include "trk_string.h"
 #include "cmdline.h"
 #include "crypto.h"
-#include "trkstring.h"
 
 #include <openssl/x509.h>
 #include <openssl/ssl.h>
 #include <filesystem>
 #include <fstream>
 #include <string>
+#include <sstream>
 
 #if _WIN32
 #include <windows.h>
@@ -23,9 +22,9 @@
 #endif
 
 
-TrkString GetCurrentUserDir()
+std::string GetCurrentUserDir()
 {
-	TrkString HomeDir;
+	std::string HomeDir;
 #if _WIN32
 	{
 		WCHAR path[MAX_PATH];
@@ -66,26 +65,26 @@ int TrkSSLHelper::ClientVerifyCallback(int preverify, struct x509_store_ctx_st* 
 		unsigned char sha256_hash[SHA256_DIGEST_LENGTH];
 		X509_digest(Cert, EVP_sha256(), sha256_hash, nullptr);
 
-		TrkString fingerprint("");
+		std::stringstream fingerprintbuild;
 		for (int i = 0; i < SHA256_DIGEST_LENGTH; i++)
 		{
 			char buffer[3];
 			snprintf(buffer, sizeof(buffer), "%02X", sha256_hash[i]);
-			fingerprint << buffer;
+			fingerprintbuild << buffer;
 
 			if (i < SHA256_DIGEST_LENGTH - 1)
 			{
-				fingerprint << ":";
+				fingerprintbuild << ":";
 			}
 
 		}
-
-		TrkString HomeDir = GetCurrentUserDir();
+		std::string fingerprint = fingerprintbuild.str();
+		std::string HomeDir = GetCurrentUserDir();
 
 		try
 		{
 			namespace fs = std::filesystem;
-			fs::path TrustFile = fs::canonical(fs::path((const char*)HomeDir) / ".trktrust");
+			fs::path TrustFile = fs::canonical(fs::path(HomeDir) / ".trktrust");
 
 			if (fs::exists(TrustFile) && fs::is_regular_file(TrustFile))
 			{
@@ -95,7 +94,7 @@ int TrkSSLHelper::ClientVerifyCallback(int preverify, struct x509_store_ctx_st* 
 					std::string l;
 					while (std::getline(TrustFileReader, l))
 					{
-						const TrkString line(l.c_str());
+						const std::string line(l.c_str());
 						if (fingerprint == line)
 						{
 							TrustFileReader.close();
@@ -125,7 +124,7 @@ int TrkSSLHelper::ClientVerifyCallback(int preverify, struct x509_store_ctx_st* 
 		{
 			if (ClientOptions != nullptr)
 			{
-                ClientOptions->last_certificate_fingerprint = TrkString(fingerprint);
+                ClientOptions->last_certificate_fingerprint = fingerprint;
 			}
 			return 0;
 		}

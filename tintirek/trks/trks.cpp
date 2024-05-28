@@ -4,6 +4,7 @@
  *	Tintirek's main server program
  */
 
+#include <string>
 #include <iostream>
 
 #ifndef _WIN32
@@ -16,6 +17,7 @@
 
 #include <filesystem>
 #include <string.h>
+#include <sstream>
 #include <climits>
 #include <signal.h>
 #include <cmath>
@@ -38,18 +40,18 @@ namespace fs = std::filesystem;
 /* Options and descriptions for the cmd-line. */
 const TrkCliOptionFlag trk_cli_options[] =
 {
-	TrkCliOptionFlag('v', TrkString("Displays version info")),
-	TrkCliOptionFlag('h', TrkString("Displays usage")),
+	TrkCliOptionFlag('v', std::string("Displays version info")),
+	TrkCliOptionFlag('h', std::string("Displays usage")),
 
 #ifndef _WIN32
-	TrkCliOptionFlag('d', TrkString("Starts as daemon mode")),
-	TrkCliOptionFlag('i', TrkString("Assign a pid file to process")),
-	TrkCliOptionFlag('l', TrkString("Defines log file path")),
+	TrkCliOptionFlag('d', std::string("Starts as daemon mode")),
+	TrkCliOptionFlag('i', std::string("Assign a pid file to process")),
+	TrkCliOptionFlag('l', std::string("Defines log file path")),
 #endif
 
-	TrkCliOptionFlag('p', TrkString("Sets server running port")),
-	TrkCliOptionFlag('r', TrkString("Sets server root directory")),
-	TrkCliOptionFlag('s', TrkString("Sets SSL path containing the server SSL credential files"), TrkString("Path"))
+	TrkCliOptionFlag('p', std::string("Sets server running port")),
+	TrkCliOptionFlag('r', std::string("Sets server root directory")),
+	TrkCliOptionFlag('s', std::string("Sets SSL path containing the server SSL credential files"), std::string("Path"))
 };
 
 
@@ -57,7 +59,7 @@ const TrkCliOptionFlag trk_cli_options[] =
 void print_version()
 {
 	TRK_VERSION_DEFINE(ver_info);
-    std::cout << trk_get_full_version_info(&ver_info).data << std::endl;
+    std::cout << trk_get_full_version_info(&ver_info) << std::endl;
 }
 
 
@@ -80,7 +82,7 @@ void print_help(bool print_legal = false)
 
 
 /* Takes the argument if given, otherwise null and returns false */
-bool return_argument_or_null(TrkString& argument, char opt, int& i, char** argv, int argc)
+bool return_argument_or_null(std::string& argument, char opt, int& i, char** argv, int argc)
 {
 	if (argv[i][2] == '\0' && i + 1 < argc && argv[i + 1][0] != '-')
 	{
@@ -111,8 +113,8 @@ int main(int argc, char** argv)
 	/* Check library versions */
 	{
 		TRK_VERSION_DEFINE(MyVer);
-        trk_string_t ErrorStr;
-        if (!trk_version_check_list(&MyVer, libVersionList, false, &ErrorStr))
+		std::string ErrorStr;
+        if (!trk_version_check_list(&MyVer, libVersionList, false, ErrorStr))
 		{
             std::cerr << ErrorStr << std::endl;
 			return EXIT_FAILURE;
@@ -169,7 +171,7 @@ int main(int argc, char** argv)
 #endif
 			case 'p':
             {
-            	TrkString optarg;
+            	std::string optarg;
 				if (!return_argument_or_null(optarg, 'p', i, argv, argc))
 				{
 					print_help();
@@ -178,9 +180,9 @@ int main(int argc, char** argv)
 				else
 				{
 					char* endPtr;
-					long result = std::strtol(optarg, &endPtr, 10);
+					long result = std::strtol(optarg.c_str(), &endPtr, 10);
 
-					if (((const char*)optarg) == endPtr)
+					if (std::strcmp(optarg.c_str(), endPtr))
 					{
 						std::cerr << "Parameter [-" << opt << "] requires an positive numeric argument." << std::endl;
 						print_help();
@@ -234,17 +236,23 @@ int main(int argc, char** argv)
 			return EXIT_FAILURE;
         }
 
-        opt_result.pid_file << (fs::temp_directory_path() / "trks.pid").string();
+		std::stringstream ss;
+		ss << opt_result.pid_file << (fs::temp_directory_path() / "trks.pid").string();
+		opt_result.pid_file = ss.str();
 	}
 
     if (opt_result.log_path == "")
 	{
-        opt_result.log_path << (fs::temp_directory_path() / "trks_log_").string() << GetTimestamp("%Y-%m-%d_%H-%M-%S");
+		std::stringstream ss;
+		ss << opt_result.log_path << (fs::temp_directory_path() / "trks_log_").string() << GetTimestamp("%Y-%m-%d_%H-%M-%S");
+		opt_result.log_path = ss.str();
 	}
 
     if (opt_result.running_root == "")
 	{
-        opt_result.running_root << fs::current_path().string() << (char)fs::path::preferred_separator;
+		std::stringstream ss;
+		ss << opt_result.running_root << fs::current_path().string() << (char)fs::path::preferred_separator;
+		opt_result.running_root = ss.str();
 	}
 
 	{
@@ -267,7 +275,7 @@ int main(int argc, char** argv)
 	TrkLinuxServer server(opt_result.port_number, &opt_result);
 #endif
 
-	TrkString ErrorStr = "";
+	std::string ErrorStr = "";
 	service.Initialization();
     if ((!opt_result.daemon || service.ServiceStart()) && server.Init(ErrorStr))
 	{

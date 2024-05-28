@@ -2,6 +2,9 @@
 .vs/
 .vscode/
 
+# Intellij cache/options directory
+.idea/
+
 # Visual Studio CMake cache/options directory
 out/
 

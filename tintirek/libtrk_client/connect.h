@@ -9,7 +9,6 @@
 #define CONNECT_H
 
 
-#include "trk_string.h"
 #include "crypto.h"
 
 
@@ -18,26 +17,26 @@ class TrkConnectHelper
 {
 public:
 	/* Send command to server */
-	static bool SendCommand(class TrkCliClientOptionResults& opt_result, const TrkString Command, TrkString& ErrorStr, TrkString& Returned);
+	static bool SendCommand(class TrkCliClientOptionResults& opt_result, const std::string Command, std::string& ErrorStr, std::string& Returned);
 	/* Send multiple commands to server */
-	static bool SendCommandMultiple(class TrkCliClientOptionResults& opt_result, class TrkCommandQueue* Commands, TrkString& ErrorStr, TrkString& Returned);
+	static bool SendCommandMultiple(class TrkCliClientOptionResults& opt_result, class TrkCommandQueue* Commands, std::string& ErrorStr, std::string& Returned);
 
 protected:
 	/* Sends packet to client as chunked data */
-	static bool SendPacket(TrkSSL* ssl_connection, int client_socket, const TrkString message, TrkString& error_msg);
+	static bool SendPacket(TrkSSL* ssl_connection, int client_socket, const std::string message, std::string& error_msg);
 	/* Recovers packet from all chunk data from client */
-	static bool ReceivePacket(TrkSSL* ssl_connection, int client_socket, TrkString& message, TrkString& error_msg);
+	static bool ReceivePacket(TrkSSL* ssl_connection, int client_socket, std::string& message, std::string& error_msg);
 	/* Internal code for connecting to the server */
-	static bool Connect_Internal(class TrkCliClientOptionResults& opt_result, TrkSSLCTX*& ssl_context, TrkSSL*& ssl_connection, int& client_socket, TrkString& ErrorStr);
+	static bool Connect_Internal(class TrkCliClientOptionResults& opt_result, TrkSSLCTX*& ssl_context, TrkSSL*& ssl_connection, int& client_socket, std::string& ErrorStr);
 	/* Internal code for disconnecting from the server */
-	static bool Disconnect_Internal(TrkSSLCTX* ssl_context, TrkSSL* ssl_connection, int client_socket, TrkString& error_msg);
+	static bool Disconnect_Internal(TrkSSLCTX* ssl_context, TrkSSL* ssl_connection, int client_socket, std::string& error_msg);
 	/* Internal code for authentication */
-	static bool Authenticate_Internal(class TrkCliClientOptionResults* opt_result, TrkSSL* ssl_connection, int client_socket, TrkString& error_msg, bool retry = false);
+	static bool Authenticate_Internal(class TrkCliClientOptionResults* opt_result, TrkSSL* ssl_connection, int client_socket, std::string& error_msg, bool retry = false);
 	
 	/* Send implementation with SSL and non-SSL */
-	static int Send(TrkSSL* ssl_connection, int client_socket, TrkString buf, int len);
+	static int Send(TrkSSL* ssl_connection, int client_socket, std::string buf, int len);
 	/* Recv implementation with SSL and non-SSL */
-	static int Recv(TrkSSL* ssl_connection, int client_socket, TrkString& buf, int len);
+	static int Recv(TrkSSL* ssl_connection, int client_socket, std::string& buf, int len);
 };
 
 
@@ -45,7 +44,7 @@ protected:
 class TrkCommandQueue
 {
 public:
-	TrkCommandQueue(TrkString Command)
+	TrkCommandQueue(std::string Command)
 		: command(Command)
 		, next_queue(nullptr)
 		, queue_front(nullptr)
@@ -89,7 +88,7 @@ public:
 		size--;
 	}
 	/* Peek the next element */
-	TrkString Peek()
+	std::string Peek()
 	{
 		if (IsEmpty())
 		{
@@ -105,7 +104,7 @@ public:
 
 
 	/* Command of this queue element */
-	TrkString command;
+	std::string command;
 private:
 	/* Next queue of this element */
 	TrkCommandQueue* next_queue;

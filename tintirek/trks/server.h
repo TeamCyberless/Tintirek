@@ -19,7 +19,7 @@
 class TrkClientInfo
 {
 public:
-	TrkClientInfo(struct sockaddr_in* ClientInfo = nullptr, int Socket = -1, TrkSSL* SSLSocket = nullptr, TrkString ip_port = "")
+	TrkClientInfo(struct sockaddr_in* ClientInfo = nullptr, int Socket = -1, TrkSSL* SSLSocket = nullptr, std::string ip_port = "")
 		: client_info(ClientInfo)
 		, client_socket(Socket)
 		, client_ssl_socket(SSLSocket)
@@ -48,9 +48,9 @@ public:
 	/*	Client SSL socket information */
 	TrkSSL* client_ssl_socket;
 	/*	Client connection info (IP:PORT) */
-	TrkString client_connection_info = "";
+	std::string client_connection_info = "";
 	/*	Client username */
-	TrkString username = "";
+	std::string username = "";
 
 protected:
 	/* Linked list's next element */
@@ -118,33 +118,33 @@ public:
     TrkServer(int Port, class TrkCliServerOptionResults* Options) { }
 
 	/*	Starts the server and checks the listening status */
-	virtual bool Init(TrkString& ErrorStr) = 0;
+	virtual bool Init(std::string& ErrorStr) = 0;
 	/*	Updates the server's status, edits connections and audits users */
-	virtual bool Run(TrkString& ErrorStr) = 0;
+	virtual bool Run(std::string& ErrorStr) = 0;
 	/*	Before the program closes, it performs server-related cleaning and
 		resets the connections of connected users */
-	virtual bool Cleanup(TrkString& ErrorStr) = 0;
+	virtual bool Cleanup(std::string& ErrorStr) = 0;
 
 	/*  Handle clients */
 	virtual void HandleConnection(TrkClientInfo* client_info);
 	/*	Disconnects client */
 	virtual void Disconnect(TrkClientInfo* client_info);
 	/*	Process authentication */
-	virtual bool Authenticate(TrkClientInfo* client_info, TrkString& error_msg, bool retry = false);
+	virtual bool Authenticate(TrkClientInfo* client_info, std::string& error_msg, bool retry = false);
 	/*  Handles clients by iteration */
-	virtual bool HandleConnectionMultiple(TrkClientInfo* client_info, TrkString& error_str);
+	virtual bool HandleConnectionMultiple(TrkClientInfo* client_info, std::string& error_str);
 	/*	Handle commands */
-	virtual bool HandleCommand(TrkClientInfo* client_info, const TrkString Message, TrkString& Returned);
+	virtual bool HandleCommand(TrkClientInfo* client_info, const std::string Message, std::string& Returned);
 
 	/*	Sends packet to client as chunked data */
-	virtual bool SendPacket(TrkClientInfo* client_info, const TrkString message, TrkString& error_str);
+	virtual bool SendPacket(TrkClientInfo* client_info, const std::string message, std::string& error_str);
 	/*	Recovers packet from all chunk data from client */
-	virtual bool ReceivePacket(TrkClientInfo* client_info, TrkString& message, TrkString& error_str);
+	virtual bool ReceivePacket(TrkClientInfo* client_info, std::string& message, std::string& error_str);
 
 	/* Send implementation with SSL and non-SSL */
-	virtual int Send(TrkClientInfo* clientInfo, TrkString buf, int len, bool use_ssl);
+	virtual int Send(TrkClientInfo* clientInfo, std::string buf, int len, bool use_ssl);
 	/* Recv implementation with SSL and non-SSL */
-	virtual int Recv(TrkClientInfo* clientInfo, TrkString& buf, int len, bool use_ssl);
+	virtual int Recv(TrkClientInfo* clientInfo, std::string& buf, int len, bool use_ssl);
 
 protected:
 	/*	Server's port number */
@@ -242,9 +242,9 @@ class TrkWindowsServer : public TrkServer
 public:
     TrkWindowsServer(int Port, TrkCliServerOptionResults* Options);
 
-	virtual bool Init(TrkString& ErrorStr) override;
-	virtual bool Run(TrkString& ErrorStr) override;
-	virtual bool Cleanup(TrkString& ErrorStr) override;
+	virtual bool Init(std::string& ErrorStr) override;
+	virtual bool Run(std::string& ErrorStr) override;
+	virtual bool Cleanup(std::string& ErrorStr) override;
 };
 
 #elif __APPLE__
@@ -254,9 +254,9 @@ class TrkMacOSServer : public TrkServer
 public:
     TrkMacOSServer(int Port, TrkCliServerOptionResults* Options);
 
-	virtual bool Init(TrkString& ErrorStr) override;
-	virtual bool Run(TrkString& ErrorStr) override;
-	virtual bool Cleanup(TrkString& ErrorStr) override;
+	virtual bool Init(std::string& ErrorStr) override;
+	virtual bool Run(std::string& ErrorStr) override;
+	virtual bool Cleanup(std::string& ErrorStr) override;
 };
 
 #elif __linux__
@@ -266,9 +266,9 @@ class TrkLinuxServer : public TrkServer
 public:
     TrkLinuxServer(int Port, TrkCliServerOptionResults* Options);
 
-	virtual bool Init(TrkString& ErrorStr) override;
-	virtual bool Run(TrkString& ErrorStr) override;
-	virtual bool Cleanup(TrkString& ErrorStr) override;
+	virtual bool Init(std::string& ErrorStr) override;
+	virtual bool Run(std::string& ErrorStr) override;
+	virtual bool Cleanup(std::string& ErrorStr) override;
 };
 
 #endif

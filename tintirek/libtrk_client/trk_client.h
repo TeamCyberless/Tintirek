@@ -20,7 +20,7 @@ inline const trk_version_t* trk_client_version(void)
 
 
 /* Get current user's directory */
-class TrkString GetCurrentUserDir();
+class std::string GetCurrentUserDir();
 
 
 #endif /* TRK_CLIENT_H */

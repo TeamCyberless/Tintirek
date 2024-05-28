@@ -10,7 +10,6 @@
 
 
 #include "trk_types.h"
-#include "trk_string.h"
 
 
 #ifdef __cplusplus
@@ -71,7 +70,7 @@ struct trk_version_t
 	/* Patch number */
 	int patch;
 	/* The version tag, such as " (Development)" or " (Release)" */
-	struct trk_string_t tag;
+	std::string tag;
 };
 
 /*
@@ -86,7 +85,7 @@ typedef struct trk_version_checklist_t
 } trk_version_checklist_t;
 
 /* Return full version info */
-trk_string_t trk_get_full_version_info(const trk_version_t* version);
+std::string trk_get_full_version_info(const trk_version_t* version);
 
 /* Check library version compatibility */
 trk_boolean_t trk_version_compatible(const trk_version_t* my_version, const trk_version_t* lib_version);
@@ -95,7 +94,7 @@ trk_boolean_t trk_version_compatible(const trk_version_t* my_version, const trk_
 trk_boolean_t trk_version_equal(const trk_version_t* my_version, const trk_version_t* other_version);
 
 /* Helper function for check version */
-trk_boolean_t trk_version_check_list(const trk_version_t* my_version, const trk_version_checklist_t* check_list, trk_boolean_t use_equal, trk_string_t* error_str);
+trk_boolean_t trk_version_check_list(const trk_version_t* my_version, const trk_version_checklist_t* check_list, trk_boolean_t use_equal, std::string& error_str);
 
 
 /* Define a static trk_version_t object */

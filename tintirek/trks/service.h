@@ -68,7 +68,7 @@ public:
 class TrkLinuxService : public TrkServiceInterface
 {
 public:
-	TrkLinuxService(TrkString PIDPath, TrkString LogPath)
+	TrkLinuxService(std::string PIDPath, std::string LogPath)
 		: pid_path(PIDPath)
 		, log_path(LogPath)
 	{ }
@@ -79,8 +79,8 @@ public:
 	virtual void ServiceNotifyStop() override;
 
 private:
-	TrkString pid_path;
-	TrkString log_path;
+	std::string pid_path;
+	std::string log_path;
 	int pidFile = -1;
 };
 

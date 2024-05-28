@@ -17,6 +17,7 @@
 #include <openssl/rand.h>
 #include <filesystem>
 #include <fstream>
+#include <sstream>
 
 #include "cmdline.h"
 #include "trk_types.h"
@@ -127,9 +128,9 @@ int TrkSSLHelper::ConnectServer(TrkSSL* Client)
 	return SSL_connect(Client->GetClient());
 }
 
-int TrkSSLHelper::Write(TrkSSL* Client, TrkString Buf, int Length)
+int TrkSSLHelper::Write(TrkSSL* Client, std::string Buf, int Length)
 {
-	int status = SSL_write(Client->GetClient(), static_cast<const char*>(Buf), Length);
+	int status = SSL_write(Client->GetClient(), Buf.c_str(), Length);
 	if (status <= 0)
 	{
 		std::cout << "Write: " << GetError(Client) << std::endl;
@@ -139,18 +140,18 @@ int TrkSSLHelper::Write(TrkSSL* Client, TrkString Buf, int Length)
 	return status;
 }
 
-int TrkSSLHelper::Read(TrkSSL* Client, TrkString& Buf, int Length)
+int TrkSSLHelper::Read(TrkSSL* Client, std::string& Buf, int Length)
 {
 	char internal_strings[1024];
 	int bytes_read = SSL_read(Client->GetClient(), internal_strings, Length);
 
 	if (bytes_read > 0)
 	{
-		Buf = TrkString(internal_strings, internal_strings + bytes_read);
+		Buf = std::string(internal_strings, internal_strings + bytes_read);
 	}
 	else if (bytes_read <= 0)
 	{
-		Buf = TrkString("");
+		Buf = std::string("");
 	}
 
 	return bytes_read;
@@ -166,18 +167,18 @@ int TrkSSLHelper::GetError(TrkSSL* Client)
 	return val;
 }
 
-bool TrkSSLHelper::LoadSSLFiles(TrkSSLCTX* SSLCTX, TrkString Path)
+bool TrkSSLHelper::LoadSSLFiles(TrkSSLCTX* SSLCTX, std::string Path)
 {
-	TrkString certificate_path(std::filesystem::path(std::filesystem::canonical((const char*)Path) / "publickey.pem").string().c_str());
-	TrkString private_key_path(std::filesystem::path(std::filesystem::canonical((const char*)Path) / "privatekey.pem").string().c_str());
+	std::string certificate_path(std::filesystem::path(std::filesystem::canonical(Path.c_str()) / "publickey.pem").string().c_str());
+	std::string private_key_path(std::filesystem::path(std::filesystem::canonical(Path.c_str()) / "privatekey.pem").string().c_str());
 
-	if (SSL_CTX_use_certificate_file(SSLCTX->GetContext(), certificate_path, SSL_FILETYPE_PEM) <= 0)
+	if (SSL_CTX_use_certificate_file(SSLCTX->GetContext(), certificate_path.c_str(), SSL_FILETYPE_PEM) <= 0)
 	{
 		PrintErrors();
 		return false;
 	}
 
-	if (SSL_CTX_use_PrivateKey_file(SSLCTX->GetContext(), private_key_path, SSL_FILETYPE_PEM) <= 0)
+	if (SSL_CTX_use_PrivateKey_file(SSLCTX->GetContext(), private_key_path.c_str(), SSL_FILETYPE_PEM) <= 0)
 	{
 		PrintErrors();
 		return false;
@@ -191,15 +192,15 @@ int ClientVerifyCallback(int preverify, struct x509_store_ctx_st* x509_ctx)
 { return 0; }
 #endif
 
-TrkString TrkCryptoHelper::SHA256(const TrkString& Str, const TrkString& Seperator)
+std::string TrkCryptoHelper::SHA256(const std::string& Str, const std::string& Seperator)
 {
 	unsigned char hash[SHA256_DIGEST_LENGTH];
 	SHA256_CTX sha256;
 	SHA256_Init(&sha256);
-	SHA256_Update(&sha256, (const char*)Str, Str.size());
+	SHA256_Update(&sha256, Str.c_str(), Str.size());
 	SHA256_Final(hash, &sha256);
 
-	TrkString hashString;
+	std::stringstream hashString;
 	char hex[3];
 	for (int i = 0; i < SHA256_DIGEST_LENGTH; i++)
 	{
@@ -212,12 +213,12 @@ TrkString TrkCryptoHelper::SHA256(const TrkString& Str, const TrkString& Seperat
 		}
 	}
 
-	return hashString;
+	return hashString.str();
 }
 
-TrkString TrkCryptoHelper::GenerateSalt()
+std::string TrkCryptoHelper::GenerateSalt()
 {
-	TrkString salt;
+	std::string salt;
 	unsigned char* saltBuffer = new unsigned char[12];
 	BIO *b64 = nullptr, *out = nullptr;
 	BUF_MEM* bptr = nullptr;
@@ -253,7 +254,7 @@ TrkString TrkCryptoHelper::GenerateSalt()
 	BIO_write(out, "\0", 1);
 	BIO_get_mem_ptr(out, &bptr);
 
-	salt = TrkString(bptr->data, bptr->data + bptr->length);
+	salt = std::string(bptr->data, bptr->data + bptr->length);
 
 	BIO_set_close(out, BIO_CLOSE);
 	BIO_free_all(out);

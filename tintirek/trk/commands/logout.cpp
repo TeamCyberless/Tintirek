@@ -20,7 +20,7 @@ bool TrkCliLogoutCommand::CallCommand_Implementation(const TrkCliOption* Options
 
 	if (TrkPasswdHelper::CheckSessionFileExists())
 	{
-		TrkString ticket = TrkPasswdHelper::GetSessionTicketByServerURL(ClientResults->server_url);
+		std::string ticket = TrkPasswdHelper::GetSessionTicketByServerURL(ClientResults->server_url);
 		if (ticket.size() == 0)
 		{
 			std::cout << "Already logged out." << std::endl;
@@ -28,7 +28,7 @@ bool TrkCliLogoutCommand::CallCommand_Implementation(const TrkCliOption* Options
 		}
 		else
 		{
-			TrkString returned, errmsg;
+			std::string returned, errmsg;
 			if (!TrkConnectHelper::SendCommand(*ClientResults, "Logout", errmsg, returned))
 			{
 				std::cerr << errmsg << std::endl;

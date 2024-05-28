@@ -8,9 +8,9 @@
 #define TRK_SQLITE3_H
 
 #include "trk_types.h"
-#include "trkstring.h"
 #include <memory>
 #include <map>
+#include <stdexcept>
 
 /* Forward declarations to avoid inclusion of sqlite3 in this header */
 struct sqlite3;
@@ -48,7 +48,7 @@ namespace TrkSqlite
 	const int Null = 5;
 
 	/* Returns SQLite version string */
-	TrkString GetLibVersion();
+	std::string GetLibVersion();
 	/* Returns SQLite version string */
 	int GetLibVersionNumber();
 
@@ -57,9 +57,9 @@ namespace TrkSqlite
 	class TrkDatabaseException : public std::runtime_error
 	{
 	public:
-		TrkDatabaseException(const TrkString ErrorMessage, int ReturnValue);
+		TrkDatabaseException(const std::string ErrorMessage, int ReturnValue);
 		TrkDatabaseException(sqlite3* Database, int ReturnValue);
-		explicit TrkDatabaseException(const TrkString ErrorMessage) : TrkDatabaseException(ErrorMessage, -1) {}
+		explicit TrkDatabaseException(const std::string ErrorMessage) : TrkDatabaseException(ErrorMessage, -1) {}
 		explicit TrkDatabaseException(sqlite3* Database);
 
 		/* Returns the error code (if there's any, otherwise will return -1) */
@@ -81,7 +81,7 @@ namespace TrkSqlite
 
 	public:
 		/* Opens the database from provided filename */
-		TrkDatabase(const TrkString Filename, const int Flags = TrkSqlite::OPEN_READONLY);
+		TrkDatabase(const std::string Filename, const int Flags = TrkSqlite::OPEN_READONLY);
 
 		/* Disables copy and move */
 		TrkDatabase(const TrkDatabase&) = delete;
@@ -97,13 +97,13 @@ namespace TrkSqlite
 
 		
 		/* Shortcut to execute statements without results. Returns the number of changes */
-		int Execute(TrkString Queries);
+		int Execute(std::string Queries);
 		/* Try to execute statements, returning the sqlite result code */
-		int TryExecute(TrkString Queries);
+		int TryExecute(std::string Queries);
 
 
 		/* Returns true if a table exists */
-		bool TableExists(TrkString TableName) const;
+		bool TableExists(std::string TableName) const;
 		/* Get the row ID of the most recent successful INSERT into the database from the current connection */
 		int64_t GetLastInsertRowID() const;
 		/* Get number of rows. Modified by last INSERT, UPDATE or DELETE statement (except DROP) */
@@ -124,7 +124,7 @@ namespace TrkSqlite
 	class TrkStatement
 	{
 	public:
-		TrkStatement(const TrkDatabase& Database, TrkString Query);
+		TrkStatement(const TrkDatabase& Database, std::string Query);
 		~TrkStatement() = default;
 
 		/* Disables copy and move */
@@ -147,7 +147,7 @@ namespace TrkSqlite
 		/* Clears away all the bindings of a prepared statement */
 		void ClearBindings();
 		/* Returns index from given name */
-		int GetIndex(const TrkString Name) const;
+		int GetIndex(const std::string Name) const;
 		/* Get number of rows modified by last INSERT, UPDATE or DELETE (except DROP) */
 		int GetChanges() const;
 		/* True when a row has been fetched with ExecuteStep, false otherwise */
@@ -155,9 +155,9 @@ namespace TrkSqlite
 		/* True when the last ExecuteStep had no more row to fetch */
 		bool Done() const;
 		/* Returns the SQL query */
-		const TrkString GetQuery() const;
+		const std::string GetQuery() const;
 		/* Returns a string containing the SQL query of prepared statement with bound parameters expanded */
-		const TrkString GetExpandedQuery() const;
+		const std::string GetExpandedQuery() const;
 
 		/* Bind an 32 bits signed int value to a parameter */
 		void Bind(const int Index, const int32_t Value);
@@ -168,41 +168,41 @@ namespace TrkSqlite
 		/* Bind a 64 bits float value to a parameter */
 		void Bind(const int Index, const double Value);
 		/* Bind a string value to a parameter */
-		void Bind(const int Index, const TrkString Value);
+		void Bind(const int Index, const std::string Value);
 		/* Bind a binary blob value to a parameter */
 		void Bind(const int Index, const void* Value, const int Size);
 		/* Bind a null value to a parameter */
 		void Bind(const int Index);
 
 		/* Bind an 32 bits signed int value to a named parameter */
-		void Bind(const TrkString Name, const int32_t Value) { Bind(GetIndex(Name), Value); }
+		void Bind(const std::string Name, const int32_t Value) { Bind(GetIndex(Name), Value); }
 		/* Bind a 32 bits unsigned int value to a named parameter */
-		void Bind(const TrkString Name, const uint32_t Value) { Bind(GetIndex(Name), Value); }
+		void Bind(const std::string Name, const uint32_t Value) { Bind(GetIndex(Name), Value); }
 		/* Bind a 64 bits signed int value to a named parameter */
-		void Bind(const TrkString Name, const int64_t Value) { Bind(GetIndex(Name), Value); }
+		void Bind(const std::string Name, const int64_t Value) { Bind(GetIndex(Name), Value); }
 		/* Bind a 64 bits float value to a named parameter */
-		void Bind(const TrkString Name, const double Value) { Bind(GetIndex(Name), Value); }
+		void Bind(const std::string Name, const double Value) { Bind(GetIndex(Name), Value); }
 		/* Bind a string value to a named parameter */
-		void Bind(const TrkString Name, const TrkString Value) { Bind(GetIndex(Name), Value); }
+		void Bind(const std::string Name, const std::string Value) { Bind(GetIndex(Name), Value); }
 		/* Bind a binary blob value to a named parameter */
-		void Bind(const TrkString Name, const void* Value, const int Size) { Bind(GetIndex(Name), Value, Size); }
+		void Bind(const std::string Name, const void* Value, const int Size) { Bind(GetIndex(Name), Value, Size); }
 		/* Bind a null value to a named parameter */
-		void Bind(const TrkString Name) { Bind(GetIndex(Name)); }
+		void Bind(const std::string Name) { Bind(GetIndex(Name)); }
 
 		/* Return a copy of the column data specified by its index */
 		class TrkValue GetColumn(const int Index) const;
 		/* Return a copy of the column data specified by its column name */
-		class TrkValue GetColumn(const TrkString Name) const;
+		class TrkValue GetColumn(const std::string Name) const;
 		/* Returns name of the specified result column */
-		TrkString GetColumnName(const int Index) const;
+		std::string GetColumnName(const int Index) const;
 		/* Checks if the column value is NULL */
 		bool IsColumnNull(const int Index) const;
 		/* Checks if the column value is NULL */
-		bool IsColumnNull(const TrkString Name) const;
+		bool IsColumnNull(const std::string Name) const;
 		/* Returns the number of columns in the result set */
 		int GetColumnCount() const;
 		/* Returns the index of specified column name */
-		int GetColumnIndex(const TrkString Name) const;
+		int GetColumnIndex(const std::string Name) const;
 
 		/* Get the numeric result of error code (if any) */
 		int GetErrorCode() const;
@@ -223,13 +223,13 @@ namespace TrkSqlite
 		sqlite3_stmt* GetPreparedStatement() const;
 
 
-		TrkString query;								// SQL query
+		std::string query;								// SQL query
 		sqlite3* sqlite_db;								// Pointer to SQLite database connection handle
 		TrkSharedStatementPtr prepared_statement;		// Shared pointer to the prepared SQLite statement object
 		int column_count = 0;							// Number of columns in the result of the prepared statement
 		bool has_row = false;							// True when a row has been fetched with ExecuteStep()
 		bool done = false;								// True when the last ExecuteStep() had no more row to fetch
-		mutable std::map<TrkString, int> column_names;	// Map of columns index by name
+		mutable std::map<std::string, int> column_names;	// Map of columns index by name
 	};
 
 	/* Tintirek's Value Class */
@@ -240,7 +240,7 @@ namespace TrkSqlite
 
 
 		/* Returns name of this result */
-		const TrkString GetName() const;
+		const std::string GetName() const;
 		/* Return the type of the value */
 		int GetType() const;
 
@@ -253,7 +253,7 @@ namespace TrkSqlite
 		/* Return the 64 bits float value of the column */
 		double GetDouble() const;
 		/* Return the string value of the column */
-		TrkString GetString() const;
+		std::string GetString() const;
 		/* Return the binary blob value of the column */
 		const void* GetBlob() const;
 
@@ -311,7 +311,7 @@ namespace TrkSqlite
 		{
 			return GetDouble();
 		}
-		operator TrkString() const
+		operator std::string() const
 		{
 			return GetString();
 		}

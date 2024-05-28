@@ -7,11 +7,11 @@
 #ifndef TRK_TYPES_H
 #define TRK_TYPES_H
 
+#include <string>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-#include "trk_string.h"
 
 
 /* Tintirek's Boolean Type */
@@ -75,7 +75,7 @@ typedef struct trk_pathsyncinfo_dictionary_t
 	/* Next element of this dictionary */
 	struct trk_pathsyncinfo_dictionary_t* next_elem;
 	/* Key value of this element */
-	const struct trk_string_t* key;
+	const std::string key;
 	/* Revision number */
 	trk_revision_number_t value;
 } trk_pathsyncinfo_dictionary_t;
@@ -86,13 +86,13 @@ typedef struct trk_pathsyncinfo_dictionary_t
 typedef struct trk_workspaceinfo_t
 {
 	/* Workspace name */
-	const struct trk_string_t* workspace_name;
+	const std::string workspace_name;
 	/* Workspace path at owner computer */
-	const struct trk_string_t* workspace_path;
+	const std::string workspace_path;
 	/* Workspace owner name */
-	const struct trk_string_t* username;
+	const std::string username;
 	/* Workspace hostname */
-	const struct trk_string_t* workspace_hostname;
+	const std::string workspace_hostname;
 	/* Workspace's current commit number */
 	trk_commit_number_t current_commit_num;
 	/* List of revision information about paths */
@@ -111,9 +111,9 @@ typedef struct trk_commitinfo_t
 	/* The number of revision */
 	trk_revision_number_t revision;
 	/* Server-side date of the commit. */
-	const struct trk_string_t* date;
+	const std::string date;
 	/* Author of the commit. */
-	const struct trk_string_t* author;
+	const std::string author;
 } trk_commitinfo_t;
 
 
@@ -122,11 +122,11 @@ typedef struct trk_commitinfo_t
 typedef struct trk_lock_t
 {
 	/* the path this lock applies to. */
-	const struct trk_string_t* path;
+	const std::string path;
 	/* unique URI representing lock. */
-	const struct trk_string_t* token;
+	const std::string token;
 	/* the username which owns the lock. */
-	const struct trk_string_t* owner;
+	const std::string owner;
 	/* when lock was made. */
 	trk_datetime_t creation_date;
 } trk_lock_t;

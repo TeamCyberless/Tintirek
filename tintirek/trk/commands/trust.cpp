@@ -34,7 +34,7 @@ bool TrkCliTrustCommand::CallCommand_Implementation(const TrkCliOption* Options,
 			return true;
 		}
 
-		TrkString returned, errmsg;
+		std::string returned, errmsg;
 		if (!TrkConnectHelper::SendCommand(*ClientResults, "GetInformation", errmsg, returned))
 		{
 			std::cout << errmsg;
@@ -52,12 +52,12 @@ bool TrkCliTrustCommand::CallCommand_Implementation(const TrkCliOption* Options,
 				return true;
 			}
 
-			TrkString HomeDir = GetCurrentUserDir();
+			std::string HomeDir = GetCurrentUserDir();
 
 			try
 			{
 				namespace fs = std::filesystem;
-				fs::path TrustFile = fs::path(fs::path((const char*)HomeDir) / ".trktrust");
+				fs::path TrustFile = fs::path(fs::path(HomeDir.c_str()) / ".trktrust");
 
 				if (fs::exists(TrustFile) && fs::is_regular_file(TrustFile))
 				{

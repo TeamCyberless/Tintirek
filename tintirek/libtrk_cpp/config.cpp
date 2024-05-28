@@ -8,6 +8,7 @@
 #include <fstream>
 #include <filesystem>
 #include <string>
+#include <sstream>
 #include <cstdlib>
 
 #ifdef _WIN32
@@ -25,11 +26,13 @@ namespace fs = std::filesystem;
 
 
 /* Recursive config finder and loader */
-static bool FindAndLoadConfig(const fs::path& currentPath, const char* configFileName, TrkString& valid_path)
+static bool FindAndLoadConfig(const fs::path& currentPath, const char* configFileName, std::string& valid_path)
 {
+    std::stringstream builder;
     fs::path configPath = currentPath / configFileName;
     if (fs::exists(configPath)) {
-        valid_path << configPath.string();
+        builder << configPath.string();
+        valid_path = builder.str();
         return true;
     }
     else {
@@ -43,7 +46,7 @@ static bool FindAndLoadConfig(const fs::path& currentPath, const char* configFil
 
 bool TrkConfig::LoadConfig(TrkCliOptionResults* Results)
 {
-    TrkString valid_path;
+    std::string valid_path;
     if (FindAndLoadConfig(fs::current_path(), ".trkconfig", valid_path))
     {
         std::ifstream configFile(valid_path);
@@ -52,15 +55,14 @@ bool TrkConfig::LoadConfig(TrkCliOptionResults* Results)
             return false;
         }
 
-        std::string l;
-        while (std::getline(configFile, l))
+        std::string line;
+        while (std::getline(configFile, line))
         {
-            TrkString line(l.c_str());
             size_t delimiterPos = line.find("=");
             if (delimiterPos != std::string::npos)
             {
-                TrkString key = line.substr(0, delimiterPos);
-                TrkString value = line.substr(delimiterPos + 1);
+                std::string key = line.substr(0, delimiterPos);
+                std::string value = line.substr(delimiterPos + 1);
 
                 TrkCliClientOptionResults* clientResults = dynamic_cast<TrkCliClientOptionResults*>(Results);
                 if (clientResults)
@@ -113,7 +115,7 @@ bool TrkConfig::LoadConfig(TrkCliOptionResults* Results)
 
                 if (GetComputerName(infoBuf, &bufCharCount))
                 {
-                    clientResults->username = TrkString(infoBuf);
+                    clientResults->username = std::string(infoBuf);
                 }
                 else
                 {
@@ -122,7 +124,7 @@ bool TrkConfig::LoadConfig(TrkCliOptionResults* Results)
 #elif __unix__
                 char hostname[HOST_NAME_MAX];
                 gethostname(hostname, HOST_NAME_MAX);
-                clientResults->username = TrkString(hostname);
+                clientResults->username = std::string(hostname);
 #endif
             }
         }
@@ -131,9 +133,9 @@ bool TrkConfig::LoadConfig(TrkCliOptionResults* Results)
     return true;
 }
 
-bool TrkConfig::WriteConfig(const TrkString FilePath, const TrkString key, const TrkString value)
+bool TrkConfig::WriteConfig(const std::string FilePath, const std::string key, const std::string value)
 {
-    fs::path fsPath((const char*)FilePath);
+    fs::path fsPath(FilePath);
 
     if (fs::exists(fsPath) && fs::is_regular_file(fsPath) && fsPath.filename() == ".trkconfig")
     {
@@ -145,7 +147,7 @@ bool TrkConfig::WriteConfig(const TrkString FilePath, const TrkString key, const
             }
         }
 
-        TrkString tempFilePath = (tempFolderPath / fsPath.filename()).string().c_str();
+        std::string tempFilePath = (tempFolderPath / fsPath.filename()).string().c_str();
 
         if (fs::exists(std::string(tempFilePath))) {
             std::ofstream tempFile(tempFilePath, std::ios::trunc);
@@ -164,11 +166,11 @@ bool TrkConfig::WriteConfig(const TrkString FilePath, const TrkString key, const
             std::string l;
             while (std::getline(configFileIn, l))
             {
-                TrkString line(l.c_str());
+                std::string line(l.c_str());
                 size_t delimiterPos = line.find("=");
-                if (delimiterPos != TrkString::npos)
+                if (delimiterPos != std::string::npos)
                 {
-                    TrkString currentKey = line.substr(0, delimiterPos);
+                    std::string currentKey = line.substr(0, delimiterPos);
                     if (currentKey == key)
                     {
                         found = true;

@@ -14,12 +14,12 @@
 
 
 /* Return a formatted timestamp */
-static TrkString GetTimestamp(TrkString format)
+static std::string GetTimestamp(std::string format)
 {
 	std::time_t now = std::time(nullptr);
 	char timestamp[100];
-	std::strftime(timestamp, sizeof(timestamp), format, std::localtime(&now));
-	return TrkString(timestamp);
+	std::strftime(timestamp, sizeof(timestamp), format.c_str(), std::localtime(&now));
+	return std::string(timestamp);
 }
 
 

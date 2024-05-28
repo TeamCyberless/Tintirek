@@ -9,7 +9,6 @@
 
 
 #include "trk_types.h"
-#include "trkstring.h"
 
 
 /* Implementation class for SSL */
@@ -66,13 +65,13 @@ public:
 	/* Connect to an SSL-enabled server */
 	static int ConnectServer(TrkSSL* Client);
 	/* Send data to an SSL-enabled server */
-	static int Write(TrkSSL* Client, TrkString Buf, int Length);
+	static int Write(TrkSSL* Client, std::string Buf, int Length);
 	/* Receive data from an SSL-enabled server */
-	static int Read(TrkSSL* Client, TrkString& Buf, int Length);
+	static int Read(TrkSSL* Client, std::string& Buf, int Length);
 	/* Get the error code that occurred during SSL communication */
 	static int GetError(TrkSSL* Client);
 	/* Load private and public keys from the specified path */
-	static bool LoadSSLFiles(TrkSSLCTX* SSLCTX, TrkString Path);
+	static bool LoadSSLFiles(TrkSSLCTX* SSLCTX, std::string Path);
 
 
 	/* Peer verification for Client-Side */
@@ -84,9 +83,9 @@ class TrkCryptoHelper
 {
 public:
 	/* Calculate the SHA-256 hash of the input daha */
-	static TrkString SHA256(const TrkString& Str, const TrkString& Seperator = "");
+	static std::string SHA256(const std::string& Str, const std::string& Seperator = "");
 	/* Cenerates a 16 bytes length random salt, which is a random string of characters */
-	static TrkString GenerateSalt();
+	static std::string GenerateSalt();
 };
 
 

@@ -16,11 +16,11 @@ namespace fs = std::filesystem;
 
 bool TrkPasswdHelper::CheckSessionFileExists()
 {
-	TrkString HomeDir = GetCurrentUserDir();
+	std::string HomeDir = GetCurrentUserDir();
 
 	try
 	{
-		fs::path SessionFile = fs::canonical(fs::path((const char*)HomeDir) / ".trksession");
+		fs::path SessionFile = fs::canonical(fs::path(HomeDir) / ".trksession");
 
 		if (fs::exists(SessionFile) && fs::is_regular_file(SessionFile))
 		{
@@ -52,13 +52,13 @@ bool TrkPasswdHelper::CheckSessionFileExists()
 	return false;
 }
 
-bool TrkPasswdHelper::SaveSessionTicket(TrkString Ticket, TrkString ServerUrl)
+bool TrkPasswdHelper::SaveSessionTicket(std::string Ticket, std::string ServerUrl)
 {
-	TrkString HomeDir = GetCurrentUserDir();
+	std::string HomeDir = GetCurrentUserDir();
 
 	try
 	{
-		fs::path SessionFile = fs::canonical(fs::path((const char*)HomeDir) / ".trksession");
+		fs::path SessionFile = fs::canonical(fs::path(HomeDir) / ".trksession");
 
 		if (fs::exists(SessionFile) && fs::is_regular_file(SessionFile))
 		{
@@ -98,13 +98,13 @@ bool TrkPasswdHelper::SaveSessionTicket(TrkString Ticket, TrkString ServerUrl)
 	return false;
 }
 
-bool TrkPasswdHelper::DeleteSessionTicket(TrkString ServerUrl)
+bool TrkPasswdHelper::DeleteSessionTicket(std::string ServerUrl)
 {
-	TrkString HomeDir = GetCurrentUserDir();
+	std::string HomeDir = GetCurrentUserDir();
 
 	try
 	{
-		fs::path SessionFile = fs::canonical(fs::path((const char*)HomeDir) / ".trksession");
+		fs::path SessionFile = fs::canonical(fs::path(HomeDir) / ".trksession");
 
 		if (fs::exists(SessionFile) && fs::is_regular_file(SessionFile))
 		{
@@ -119,7 +119,7 @@ bool TrkPasswdHelper::DeleteSessionTicket(TrkString ServerUrl)
 			std::string l;
 			while (std::getline(input, l))
 			{
-				const TrkString line(l.c_str());
+				const std::string line(l.c_str());
 				if (line.find(ServerUrl + "=") != 0)
 				{
 					output << line << std::endl;
@@ -156,13 +156,13 @@ bool TrkPasswdHelper::DeleteSessionTicket(TrkString ServerUrl)
 	return false;
 }
 
-bool TrkPasswdHelper::ChangeSessionTicket(TrkString Ticket, TrkString ServerUrl)
+bool TrkPasswdHelper::ChangeSessionTicket(std::string Ticket, std::string ServerUrl)
 {
-	TrkString HomeDir = GetCurrentUserDir();
+	std::string HomeDir = GetCurrentUserDir();
 
 	try
 	{
-		fs::path SessionFile = fs::canonical(fs::path((const char*)HomeDir) / ".trksession");
+		fs::path SessionFile = fs::canonical(fs::path(HomeDir) / ".trksession");
 
 		if (fs::exists(SessionFile) && fs::is_regular_file(SessionFile))
 		{
@@ -177,7 +177,7 @@ bool TrkPasswdHelper::ChangeSessionTicket(TrkString Ticket, TrkString ServerUrl)
 			std::string l;
 			while (std::getline(input, l))
 			{
-				const TrkString line(l.c_str());
+				const std::string line(l.c_str());
 				if (line.find(ServerUrl + "=") == 0)
 				{
 					output << ServerUrl << "=" << Ticket << std::endl;
@@ -218,13 +218,13 @@ bool TrkPasswdHelper::ChangeSessionTicket(TrkString Ticket, TrkString ServerUrl)
 	return false;
 }
 
-TrkString TrkPasswdHelper::GetSessionTicketByServerURL(TrkString ServerUrl)
+std::string TrkPasswdHelper::GetSessionTicketByServerURL(std::string ServerUrl)
 {
-	TrkString HomeDir = GetCurrentUserDir();
+	std::string HomeDir = GetCurrentUserDir();
 
 	try
 	{
-		fs::path SessionFile = fs::canonical(fs::path((const char*)HomeDir) / ".trksession");
+		fs::path SessionFile = fs::canonical(fs::path(HomeDir) / ".trksession");
 
 		if (fs::exists(SessionFile) && fs::is_regular_file(SessionFile))
 		{
@@ -234,12 +234,12 @@ TrkString TrkPasswdHelper::GetSessionTicketByServerURL(TrkString ServerUrl)
 				std::string l;
 				while (std::getline(SessionFileReader, l))
 				{
-					const TrkString line(l.c_str());
+					const std::string line(l.c_str());
 					size_t delimiterPos = line.find("=");
 					if (delimiterPos != std::string::npos)
 					{
-						const TrkString key = line.substr(0, delimiterPos);
-						const TrkString value = line.substr(delimiterPos + 1);
+						const std::string key = line.substr(0, delimiterPos);
+						const std::string value = line.substr(delimiterPos + 1);
 
 						if (key == ServerUrl)
 						{

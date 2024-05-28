@@ -10,9 +10,9 @@
 #include "sqlite3.h"
 #include <../../deps/sqlite-amalgamation/sqlite3.h>
 
-TrkString TrkSqlite::GetLibVersion()
+std::string TrkSqlite::GetLibVersion()
 {
-	return TrkString(sqlite3_libversion());
+	return std::string(sqlite3_libversion());
 }
 
 int TrkSqlite::GetLibVersionNumber()
@@ -20,7 +20,7 @@ int TrkSqlite::GetLibVersionNumber()
 	return sqlite3_libversion_number();
 }
 
-TrkSqlite::TrkDatabaseException::TrkDatabaseException(const TrkString ErrorMessage, int ReturnValue)
+TrkSqlite::TrkDatabaseException::TrkDatabaseException(const std::string ErrorMessage, int ReturnValue)
 	: std::runtime_error(ErrorMessage)
 	, errcode(ReturnValue)
 	, errextndcode(-1)
@@ -38,10 +38,10 @@ TrkSqlite::TrkDatabaseException::TrkDatabaseException(struct sqlite3* Database)
 	, errextndcode(sqlite3_extended_errcode(Database))
 { }
 
-TrkSqlite::TrkDatabase::TrkDatabase(const TrkString Filename, const int Flags)
+TrkSqlite::TrkDatabase::TrkDatabase(const std::string Filename, const int Flags)
 {
 	sqlite3* handle;
-	const int ret = sqlite3_open_v2(Filename, &handle, Flags, nullptr);
+	const int ret = sqlite3_open_v2(Filename.c_str(), &handle, Flags, nullptr);
 	sqlite_db.reset(handle);
 	if (SQLITE_OK != ret)
 	{
@@ -62,7 +62,7 @@ void TrkSqlite::TrkDatabase::Deleter::operator()(sqlite3* SQLite)
 	}
 }
 
-int TrkSqlite::TrkDatabase::Execute(TrkString Queries)
+int TrkSqlite::TrkDatabase::Execute(std::string Queries)
 {
 	const int ret = TryExecute(Queries);
 
@@ -74,12 +74,12 @@ int TrkSqlite::TrkDatabase::Execute(TrkString Queries)
 	return sqlite3_changes(sqlite_db.get());
 }
 
-int TrkSqlite::TrkDatabase::TryExecute(TrkString Queries)
+int TrkSqlite::TrkDatabase::TryExecute(std::string Queries)
 {
-	return sqlite3_exec(sqlite_db.get(), Queries, nullptr, nullptr, nullptr);
+	return sqlite3_exec(sqlite_db.get(), Queries.c_str(), nullptr, nullptr, nullptr);
 }
 
-bool TrkSqlite::TrkDatabase::TableExists(TrkString TableName) const
+bool TrkSqlite::TrkDatabase::TableExists(std::string TableName) const
 {
 	TrkStatement query(*this, "SELECT count(*) FROM sqlite_master WHERE type='table' AND name=?");
 	query.Bind(1, TableName);
@@ -122,7 +122,7 @@ TrkSqlite::TrkValue::TrkValue(const TrkStatement::TrkSharedStatementPtr& Stateme
 	}
 }
 
-const TrkString TrkSqlite::TrkValue::GetName() const
+const std::string TrkSqlite::TrkValue::GetName() const
 {
 	return sqlite3_column_name(statement_ptr.get(), index);
 }
@@ -152,10 +152,10 @@ double TrkSqlite::TrkValue::GetDouble() const
 	return sqlite3_column_double(statement_ptr.get(), index);
 }
 
-TrkString TrkSqlite::TrkValue::GetString() const
+std::string TrkSqlite::TrkValue::GetString() const
 {
 	auto Text = reinterpret_cast<const char*>(sqlite3_column_text(statement_ptr.get(), index));
-	return Text ? TrkString(Text) : TrkString("");
+	return Text ? std::string(Text) : std::string("");
 }
 
 const void* TrkSqlite::TrkValue::GetBlob() const
@@ -168,7 +168,7 @@ int TrkSqlite::TrkValue::GetBytes() const
 	return sqlite3_column_bytes(statement_ptr.get(), index);
 }
 
-TrkSqlite::TrkStatement::TrkStatement(const TrkDatabase& Database, TrkString Query)
+TrkSqlite::TrkStatement::TrkStatement(const TrkDatabase& Database, std::string Query)
 	: query(Query)
 	, sqlite_db(Database.sqlite_db.get())
 	, prepared_statement(PrepareStatement())
@@ -265,9 +265,9 @@ void TrkSqlite::TrkStatement::ClearBindings()
 	}
 }
 
-int TrkSqlite::TrkStatement::GetIndex(const TrkString Name) const
+int TrkSqlite::TrkStatement::GetIndex(const std::string Name) const
 {
-	return sqlite3_bind_parameter_index(GetPreparedStatement(), Name);
+	return sqlite3_bind_parameter_index(GetPreparedStatement(), Name.c_str());
 }
 
 int TrkSqlite::TrkStatement::GetChanges() const
@@ -285,15 +285,15 @@ bool TrkSqlite::TrkStatement::Done() const
 	return done;
 }
 
-const TrkString TrkSqlite::TrkStatement::GetQuery() const
+const std::string TrkSqlite::TrkStatement::GetQuery() const
 {
 	return query;
 }
 
-const TrkString TrkSqlite::TrkStatement::GetExpandedQuery() const
+const std::string TrkSqlite::TrkStatement::GetExpandedQuery() const
 {
 	auto expanded = sqlite3_expanded_sql(GetPreparedStatement());
-	TrkString expandedStr(expanded);
+	std::string expandedStr(expanded);
 	sqlite3_free(expanded);
 	return expandedStr;
 }
@@ -338,9 +338,9 @@ void TrkSqlite::TrkStatement::Bind(const int Index, const double Value)
 	}
 }
 
-void TrkSqlite::TrkStatement::Bind(const int Index, const TrkString Value)
+void TrkSqlite::TrkStatement::Bind(const int Index, const std::string Value)
 {
-	const int ret = sqlite3_bind_text(GetPreparedStatement(), Index, (const char*)Value, Value.size(), SQLITE_TRANSIENT);
+	const int ret = sqlite3_bind_text(GetPreparedStatement(), Index, Value.c_str(), Value.size(), SQLITE_TRANSIENT);
 
 	if (SQLITE_OK != ret)
 	{
@@ -375,14 +375,14 @@ TrkSqlite::TrkValue TrkSqlite::TrkStatement::GetColumn(const int Index) const
 	return TrkValue(prepared_statement, Index);
 }
 
-TrkSqlite::TrkValue TrkSqlite::TrkStatement::GetColumn(const TrkString Name) const
+TrkSqlite::TrkValue TrkSqlite::TrkStatement::GetColumn(const std::string Name) const
 {
 	CheckRow();
 	const int index = GetColumnIndex(Name);
 	return TrkValue(prepared_statement, index);
 }
 
-TrkString TrkSqlite::TrkStatement::GetColumnName(const int Index) const
+std::string TrkSqlite::TrkStatement::GetColumnName(const int Index) const
 {
 	CheckIndex(Index);
 	return sqlite3_column_name(GetPreparedStatement(), Index);
@@ -395,7 +395,7 @@ bool TrkSqlite::TrkStatement::IsColumnNull(const int Index) const
 	return SQLITE_NULL == sqlite3_column_type(GetPreparedStatement(), Index);
 }
 
-bool TrkSqlite::TrkStatement::IsColumnNull(const TrkString Name) const
+bool TrkSqlite::TrkStatement::IsColumnNull(const std::string Name) const
 {
 	CheckRow();
 	const int index = GetColumnIndex(Name);
@@ -407,13 +407,13 @@ int TrkSqlite::TrkStatement::GetColumnCount() const
 	return column_count;
 }
 
-int TrkSqlite::TrkStatement::GetColumnIndex(const TrkString Name) const
+int TrkSqlite::TrkStatement::GetColumnIndex(const std::string Name) const
 {
 	if (column_names.empty())
 	{
 		for (int i = 0; i < column_count; i++)
 		{
-			const TrkString ColumnName = sqlite3_column_name(GetPreparedStatement(), i);
+			const std::string ColumnName = sqlite3_column_name(GetPreparedStatement(), i);
 			column_names[ColumnName] = i;
 		}
 	}
@@ -456,7 +456,7 @@ void TrkSqlite::TrkStatement::CheckIndex(const int Index) const
 TrkSqlite::TrkStatement::TrkSharedStatementPtr TrkSqlite::TrkStatement::PrepareStatement()
 {
 	sqlite3_stmt* statement;
-	const int ret = sqlite3_prepare_v2(sqlite_db, query, query.size(), &statement, nullptr);
+	const int ret = sqlite3_prepare_v2(sqlite_db, query.c_str(), query.size(), &statement, nullptr);
 	if (SQLITE_OK != ret)
 	{
 		throw TrkDatabaseException(sqlite_db, ret);

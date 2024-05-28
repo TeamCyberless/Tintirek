@@ -17,17 +17,17 @@ TrkMacOSServer::TrkMacOSServer(int Port, TrkCliServerOptionResults* Options)
 
 }
 
-bool TrkMacOSServer::Init(TrkString& ErrorStr)
+bool TrkMacOSServer::Init(std::string& ErrorStr)
 {
 	return false;
 }
 
-bool TrkMacOSServer::Run(TrkString& ErrorStr)
+bool TrkMacOSServer::Run(std::string& ErrorStr)
 {
 	return false;
 }
 
-bool TrkMacOSServer::Cleanup(TrkString& ErrorStr)
+bool TrkMacOSServer::Cleanup(std::string& ErrorStr)
 {
 	return false;
 }

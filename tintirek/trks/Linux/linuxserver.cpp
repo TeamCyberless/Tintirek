@@ -31,7 +31,7 @@ TrkLinuxServer::TrkLinuxServer(int Port, TrkCliServerOptionResults* Options)
 	FD_ZERO(master);
 }
 
-bool TrkLinuxServer::Init(TrkString& ErrorStr)
+bool TrkLinuxServer::Init(std::string& ErrorStr)
 {
 	if (opt_result->ssl_files_path != "")
 	{
@@ -93,7 +93,7 @@ bool TrkLinuxServer::Init(TrkString& ErrorStr)
 	return true;
 }
 
-bool TrkLinuxServer::Run(TrkString& ErrorStr)
+bool TrkLinuxServer::Run(std::string& ErrorStr)
 {
 	bool ssl_active = opt_result->ssl_files_path != "";
 	fd_set readSet = *master;
@@ -122,12 +122,14 @@ bool TrkLinuxServer::Run(TrkString& ErrorStr)
 
 					char ip[INET_ADDRSTRLEN];
 					inet_ntop(AF_INET, &clientAddr.sin_addr, ip, INET_ADDRSTRLEN);
-					TrkString ss;
+					std::stringstream ss;
 					ss << ip << ":" << htons(clientAddr.sin_port);
 
 					if (clientSocket == -1)
 					{
-						ErrorStr << "Client accept error: " << ss;
+						std::stringstream errorBuilder;
+						errorBuilder << "Client accept error: " << ss;
+						ErrorStr = errorBuilder.str();
 						continue;
 					}
 
@@ -199,7 +201,7 @@ bool TrkLinuxServer::Run(TrkString& ErrorStr)
 	return true;
 }
 
-bool TrkLinuxServer::Cleanup(TrkString& ErrorStr)
+bool TrkLinuxServer::Cleanup(std::string& ErrorStr)
 {
 	for (int i = 0; i <= max_socket; ++i)
 	{

@@ -22,7 +22,7 @@ bool TrkCliInfoCommand::CallCommand_Implementation(const TrkCliOption* Options, 
 
 	if (ClientResults)
 	{
-		TrkString returned, errmsg;
+		std::string returned, errmsg;
 		if (!TrkConnectHelper::SendCommand(*ClientResults, "GetInformation", errmsg, returned))
 		{
 			std::cerr << errmsg << std::endl;
@@ -50,15 +50,15 @@ bool TrkCliInfoCommand::CallCommand_Implementation(const TrkCliOption* Options, 
 
 					if (key == "servertime")
 					{
-						ClientResults->server_time << value;
+						ClientResults->server_time.append(value);
 					}
 					else if (key == "serveruptime")
 					{
-						ClientResults->server_uptime << value;
+						ClientResults->server_uptime.append(value);
 					}
 					else if (key == "serverversion")
 					{
-						ClientResults->server_version << value;
+						ClientResults->server_version.append(value);
 					}
 				}
 				pos = semicolonPos + 1;
@@ -67,7 +67,7 @@ bool TrkCliInfoCommand::CallCommand_Implementation(const TrkCliOption* Options, 
 
 		std::cout <<
 			"User Name: " << ClientResults->username << std::endl <<
-			"Workspace Directory: " << (ClientResults->workspace_path ? ClientResults->workspace_path : "unknown") << std::endl <<
+			"Workspace Directory: " << (ClientResults->workspace_path.empty() ? ClientResults->workspace_path : "unknown") << std::endl <<
 			"Current Directory: " << fs::current_path().string() << std::endl <<
 			"Client Version: " << TRK_VERSION << std::endl <<
 			"Development Mode: " << (std::string(TRK_VER_TAG) == " (Development)" ? "Enabled" : "Disabled") << std::endl <<

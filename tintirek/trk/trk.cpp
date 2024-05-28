@@ -51,12 +51,12 @@ const TrkCliOption trk_cli_options[] =
 void print_version()
 {
     TRK_VERSION_DEFINE(ver_info);
-    std::cout << trk_get_full_version_info(&ver_info).data << std::endl;
+    std::cout << trk_get_full_version_info(&ver_info) << std::endl;
 }
 
 
 /* Prints help to screen */
-void print_help(TrkString command)
+void print_help(std::string command)
 {
 	if (command == "\0")
 	{
@@ -103,7 +103,7 @@ void print_help(TrkString command)
 
 
 /* Takes the argument if given, otherwise null and returns false */
-bool return_argument_or_null(TrkString& argument, char opt, int& i, char** argv, int argc)
+bool return_argument_or_null(std::string& argument, char opt, int& i, char** argv, int argc)
 {
 	if (argv[i][2] == '\0' && i + 1 < argc && argv[i + 1][0] != '-')
 	{
@@ -135,8 +135,8 @@ int main(int argc, char** argv)
 	/* Check library versions */
 	{
 		TRK_VERSION_DEFINE(MyVer);
-		TrkString ErrorStr;
-        if (!trk_version_check_list(&MyVer, libVersionList, false, &ErrorStr))
+		std::string ErrorStr;
+        if (!trk_version_check_list(&MyVer, libVersionList, false, ErrorStr))
 		{
 			std::cerr << ErrorStr << std::endl;
 			return EXIT_FAILURE;
@@ -167,7 +167,7 @@ int main(int argc, char** argv)
 	/* Get command requested by client */
 	for (const auto& cmd : trk_cli_options)
 	{
-        if (strcmp(cmd.command, argv[1]) == 0)
+        if (strcmp(cmd.command.c_str(), argv[1]) == 0)
 		{
 			opt_result.requested_command = &cmd;
 			break;
@@ -245,7 +245,7 @@ int main(int argc, char** argv)
 
 			case 'm':
 			{
-				TrkString optarg;
+				std::string optarg;
 				if (!return_argument_or_null(optarg, 'm', i, argv, argc))
 				{
 					return EXIT_FAILURE;
@@ -253,9 +253,9 @@ int main(int argc, char** argv)
 				else
 				{
 					char* endPtr;
-					long result = std::strtoul(optarg, &endPtr, 10);
+					long result = std::strtoul(optarg.c_str(), &endPtr, 10);
 
-					if (((const char*)optarg) == endPtr)
+					if (std::strcmp(optarg.c_str(), endPtr))
 					{
 						std::cerr << "Parameter [-" << opt << "] requires an positive numeric argument." << std::endl << std::endl;
 						return EXIT_FAILURE;
@@ -311,18 +311,18 @@ int main(int argc, char** argv)
 
 	if (opt_result.ip_address == "" || opt_result.port == 0)
 	{
-		TrkString realurl = opt_result.server_url;
-		if (realurl.startswith("tls:"))
+		std::string realurl = opt_result.server_url;
+		if (realurl.rfind("tls:", 0))
 		{
 			opt_result.trust = true;
 			realurl = realurl.substr(4);
 		}
 
 		size_t found = realurl.find(":");
-		if (found != TrkString::npos)
+		if (found != std::string::npos)
 		{
 			opt_result.ip_address = realurl.substr(0, found);
-			opt_result.port = atoi(realurl.substr(found + 1));
+			opt_result.port = atoi(realurl.substr(found + 1).c_str());
 		}
 		else
 		{

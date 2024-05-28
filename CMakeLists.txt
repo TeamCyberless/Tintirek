@@ -68,9 +68,8 @@ endif ()
 
 # Set sources for each library
 set(LIBTRK_CORE_SOURCES
-	"tintirek/libtrk_core/string.c"
-	"tintirek/libtrk_core/types.c"
-	"tintirek/libtrk_core/version.c"
+	"tintirek/libtrk_core/types.cpp"
+	"tintirek/libtrk_core/version.cpp"
 	"tintirek/libtrk_core/trk_core.h"
 )
 set(LIBTRK_CPP_SOURCES
@@ -82,8 +81,6 @@ set(LIBTRK_CPP_SOURCES
 	"tintirek/libtrk_cpp/crypto.cpp"
 	"tintirek/libtrk_cpp/sqlite3.h"
 	"tintirek/libtrk_cpp/sqlite3.cpp"
-	"tintirek/libtrk_cpp/trkstring.h"
-	"tintirek/libtrk_cpp/trkstring.cpp"
 	"tintirek/libtrk_cpp/trk_cpp.h"
 )
 set(LIBTRK_CLIENT_SOURCES
@@ -206,8 +203,6 @@ if (TINTIREK_TEST)
 	# List of unit test files
 	set(UNIT_TEST_SOURCES
 		"test/memory_leak.h"
-		"test/trk_string_test.cpp"
-		"test/string_test.cpp"
 		"test/database_test.cpp"
 	)
 

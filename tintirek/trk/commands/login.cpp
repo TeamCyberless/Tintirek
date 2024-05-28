@@ -19,7 +19,7 @@ bool TrkCliLoginCommand::CallCommand_Implementation(const TrkCliOption* Options,
 
 	if (TrkPasswdHelper::CheckSessionFileExists())
 	{
-		TrkString ticket = TrkPasswdHelper::GetSessionTicketByServerURL(ClientResults->server_url);
+		std::string ticket = TrkPasswdHelper::GetSessionTicketByServerURL(ClientResults->server_url);
 		if (ticket.size() > 0)
 		{
 			if (Results->showsessionticket)
@@ -33,7 +33,7 @@ bool TrkCliLoginCommand::CallCommand_Implementation(const TrkCliOption* Options,
 		}
 	}
 
-	TrkString returned, errmsg;
+	std::string returned, errmsg;
 	if (!TrkConnectHelper::SendCommand(*ClientResults, "Close", errmsg, returned))
 	{
 		std::cerr << errmsg << std::endl;
@@ -42,7 +42,7 @@ bool TrkCliLoginCommand::CallCommand_Implementation(const TrkCliOption* Options,
 
 	if (Results->showsessionticket)
 	{
-		TrkString ticket = TrkPasswdHelper::GetSessionTicketByServerURL(ClientResults->server_url);
+		std::string ticket = TrkPasswdHelper::GetSessionTicketByServerURL(ClientResults->server_url);
 		std::cout << ticket << std::endl;
 	}
 	else
