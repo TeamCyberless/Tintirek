@@ -356,16 +356,16 @@ bool TrkConnectHelper::Connect_Internal(TrkCliClientOptionResults& opt_result, T
 
 	unsigned char response[5];
 	response[0] = 0xEA;
-	response[0] = 0xEB;
-	response[0] = 0x00;
-	response[0] = 0xCC;
+	response[1] = 0xEB;
+	response[2] = 0x00;
+	response[3] = 0xCC;
 	if (opt_result.trust)
 	{
-		response[0] = 0x01;
+		response[4] = 0x01;
 	}
 	else
 	{
-		response[0] = 0x00;
+		response[4] = 0x00;
 	}
 
 	send(client_socket, reinterpret_cast<char*>(response), sizeof(response), 0);

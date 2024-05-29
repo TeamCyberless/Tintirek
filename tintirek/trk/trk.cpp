@@ -312,7 +312,7 @@ int main(int argc, char** argv)
 	if (opt_result.ip_address == "" || opt_result.port == 0)
 	{
 		std::string realurl = opt_result.server_url;
-		if (realurl.rfind("tls:", 0))
+		if (realurl.rfind("tls:", 0) != std::string::npos)
 		{
 			opt_result.trust = true;
 			realurl = realurl.substr(4);
