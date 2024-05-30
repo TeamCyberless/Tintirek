@@ -19,7 +19,7 @@ trk_string_t trk_get_full_version_info(const trk_version_t* version)
 	sprintf(minor, "%d", version->minor);
 	sprintf(patch, "%d", version->patch);
 
-	trk_string_t ss;
+	trk_string_t ss = trk_string_create_empty();
 	trk_string_append_cstr(&ss, trk_string_create(major));
 	trk_string_append_cstr(&ss, trk_string_create("."));
 	trk_string_append_cstr(&ss, trk_string_create(minor));

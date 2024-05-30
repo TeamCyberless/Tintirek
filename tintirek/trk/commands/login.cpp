@@ -32,6 +32,11 @@ bool TrkCliLoginCommand::CallCommand_Implementation(const TrkCliOption* Options,
 			return true;
 		}
 	}
+	
+	if (ClientResults->command_parameter != "")
+	{
+		ClientResults->username = ClientResults->command_parameter;
+	}
 
 	TrkString returned, errmsg;
 	if (!TrkConnectHelper::SendCommand(*ClientResults, "Close", errmsg, returned))

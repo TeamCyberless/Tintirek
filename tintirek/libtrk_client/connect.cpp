@@ -96,8 +96,8 @@ bool TrkConnectHelper::SendCommand(TrkCliClientOptionResults& opt_result, const 
 bool TrkConnectHelper::SendCommandMultiple(class TrkCliClientOptionResults& opt_result, class TrkCommandQueue* Commands, TrkString& ErrorStr, TrkString& Returned)
 {
 	int client_socket;
-	TrkSSLCTX* ssl_context;
-	TrkSSL* ssl_connection;
+	TrkSSLCTX* ssl_context = nullptr;
+	TrkSSL* ssl_connection = nullptr;
 	if (!Connect_Internal(opt_result, ssl_context, ssl_connection, client_socket, ErrorStr))
 	{
 		return false;
@@ -105,7 +105,7 @@ bool TrkConnectHelper::SendCommandMultiple(class TrkCliClientOptionResults& opt_
 
 	while (!Commands->IsEmpty())
 	{
-		const char* command = Commands->Peek();
+		TrkString command = Commands->Peek();
 
 		int errcode;
 		if (!SendPacket(ssl_connection, client_socket, command, ErrorStr))
@@ -347,16 +347,16 @@ bool TrkConnectHelper::Connect_Internal(TrkCliClientOptionResults& opt_result, T
 
 	unsigned char response[5];
 	response[0] = 0xEA;
-	response[0] = 0xEB;
-	response[0] = 0x00;
-	response[0] = 0xCC;
+	response[1] = 0xEB;
+	response[2] = 0x00;
+	response[3] = 0xCC;
 	if (opt_result.trust)
 	{
-		response[0] = 0x01;
+		response[4] = 0x01;
 	}
 	else
 	{
-		response[0] = 0x00;
+		response[4] = 0x00;
 	}
 
 	send(client_socket, reinterpret_cast<char*>(response), sizeof(response), 0);
@@ -436,6 +436,17 @@ bool TrkConnectHelper::Connect_Internal(TrkCliClientOptionResults& opt_result, T
 			delete ssl_connection;
 
 			return false;
+		}
+	}
+	else
+	{
+		if (ssl_context != nullptr)
+		{
+			delete ssl_context;
+		}
+		if (ssl_connection = nullptr)
+		{
+			delete ssl_connection;
 		}
 	}
 
