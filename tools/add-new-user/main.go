@@ -119,13 +119,14 @@ func main() {
 			var username, fullname, email, password_hash, salt string
 			var ticket sql.NullString
 			var created, updated time.Time
+			var ticket_end *time.Time
 
-			err := rows.Scan(&id, &username, &fullname, &email, &ticket, &password_hash, &salt, &iteration, &created, &updated)
+			err := rows.Scan(&id, &username, &fullname, &email, &ticket, &ticket_end, &password_hash, &salt, &iteration, &created, &updated)
 			if err != nil {
 				log.Fatal(err)
 			}
 
-			fmt.Printf("ID: %d\nUsername: %s\nFull Name: %s\nEmail: %s\nTicket: %s\nHashed Passwd: %s\nSalt: %s\nIteration: %d\nCreated: %s\nUpdated: %s\n", id, username, fullname, email, ticket.String, password_hash, salt, iteration, created.String(), updated.String())
+			fmt.Printf("ID: %d\nUsername: %s\nFull Name: %s\nEmail: %s\nTicket: %s\nTicket End: %s\nHashed Passwd: %s\nSalt: %s\nIteration: %d\nCreated: %s\nUpdated: %s\n", id, username, fullname, email, ticket.String, ticket_end, password_hash, salt, iteration, created.String(), updated.String())
 		}
 	}
 }
