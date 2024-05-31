@@ -103,6 +103,12 @@ bool TrkConnectHelper::SendCommandMultiple(class TrkCliClientOptionResults& opt_
 		return false;
 	}
 
+	if (!Authenticate_Internal(&opt_result, ssl_connection, client_socket, ErrorStr))
+	{
+		Disconnect_Internal(ssl_context, ssl_connection, client_socket, ErrorStr);
+		return false;
+	}
+
 	while (!Commands->IsEmpty())
 	{
 		TrkString command = Commands->Peek();
