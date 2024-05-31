@@ -98,10 +98,16 @@ bool TrkConnectHelper::SendCommand(TrkCliClientOptionResults& opt_result, const 
 bool TrkConnectHelper::SendCommandMultiple(class TrkCliClientOptionResults& opt_result, class TrkCommandQueue* Commands, std::string& ErrorStr, std::string& Returned)
 {
 	int client_socket;
-	TrkSSLCTX* ssl_context;
-	TrkSSL* ssl_connection;
+	TrkSSLCTX* ssl_context = nullptr;
+	TrkSSL* ssl_connection = nullptr;
 	if (!Connect_Internal(opt_result, ssl_context, ssl_connection, client_socket, ErrorStr))
 	{
+		return false;
+	}
+
+	if (!Authenticate_Internal(&opt_result, ssl_connection, client_socket, ErrorStr))
+	{
+		Disconnect_Internal(ssl_context, ssl_connection, client_socket, ErrorStr);
 		return false;
 	}
 
@@ -448,6 +454,17 @@ bool TrkConnectHelper::Connect_Internal(TrkCliClientOptionResults& opt_result, T
 
 			ErrorStr = errorBuilder.str();
 			return false;
+		}
+	}
+	else
+	{
+		if (ssl_context != nullptr)
+		{
+			delete ssl_context;
+		}
+		if (ssl_connection = nullptr)
+		{
+			delete ssl_connection;
 		}
 	}
 

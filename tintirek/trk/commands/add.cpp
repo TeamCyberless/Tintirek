@@ -55,6 +55,7 @@ bool TrkCliAddCommand::CallCommand_Implementation(const TrkCliOption* Options, T
 					return false;
 				}
 				
+				std::cout << returned << std::endl;
 				return true;
 			}
 		}
@@ -72,6 +73,7 @@ bool TrkCliAddCommand::CallCommand_Implementation(const TrkCliOption* Options, T
 		return false;
 	}
 
+	std::cout << returned << std::endl;
 	return true;
 }
 
